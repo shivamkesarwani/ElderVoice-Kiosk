@@ -4,12 +4,13 @@ import { TrackedItem } from '../types';
 import { requestVoiceReply } from '../services/voiceService';
 import { useLanguage } from '../context/LanguageContext';
 
-interface CardLostItemsProps {
+export interface CardLostItemsProps {
   onStartListening: (initialQuery?: string) => void;
   onShowToast: (msg: string) => void;
+  items?: TrackedItem[];
 }
 
-const trackedItems: TrackedItem[] = [
+export const defaultTrackedItems: TrackedItem[] = [
   {
     id: 'item-glasses',
     name: 'Reading Glasses',
@@ -47,11 +48,14 @@ const trackedItems: TrackedItem[] = [
 export const CardLostItems: React.FC<CardLostItemsProps> = ({
   onStartListening,
   onShowToast,
+  items,
 }) => {
   const { t, language, languageInfo } = useLanguage();
   const [selectedItem, setSelectedItem] = useState<TrackedItem | null>(null);
   const [queryResult, setQueryResult] = useState<string | null>(null);
   const [isLoading, setIsLoading] = useState<boolean>(false);
+
+  const displayItems = items !== undefined ? items : defaultTrackedItems;
 
   const getItemIcon = (iconName: TrackedItem['iconName']) => {
     switch (iconName) {
@@ -75,15 +79,17 @@ export const CardLostItems: React.FC<CardLostItemsProps> = ({
 
     try {
       const response = await requestVoiceReply(query, language);
-      const text = response.reply || `Your ${item.name.toLowerCase()} were last seen in the ${item.room} about ${item.relativeTime}.`;
+      const text =
+        response.reply ||
+        `Your ${item.name.toLowerCase()} were last seen in the ${item.room} about ${item.relativeTime}.`;
       setQueryResult(text);
       onShowToast(`Located: ${item.name} in ${item.room}`);
 
       // Play accessible text-to-speech if speech synthesis is available
-      if ('speechSynthesis' in window) {
+      if (typeof window !== 'undefined' && 'speechSynthesis' in window) {
         window.speechSynthesis.cancel();
         const utterance = new SpeechSynthesisUtterance(text);
-        utterance.lang = languageInfo.locale || 'en-US';
+        utterance.lang = languageInfo?.locale || 'en-US';
         utterance.rate = 0.88; // Gentle, slower pace for seniors
         utterance.pitch = 1.0;
         window.speechSynthesis.speak(utterance);
@@ -110,26 +116,26 @@ export const CardLostItems: React.FC<CardLostItemsProps> = ({
             </div>
             <div>
               <h2 className="font-serif text-2xl font-bold text-[#2B2A28]">
-                {t('cardLostItemsTitle')}
+                {t ? t('cardLostItemsTitle') : 'Find My Items'}
               </h2>
               <span className="text-sm font-medium text-[#2B2A28]/80">
-                {t('cardLostItemsSubtitle')}
+                {t ? t('cardLostItemsSubtitle') : 'Room location helpers'}
               </span>
             </div>
           </div>
 
           <button
             type="button"
-            onClick={() => onStartListening("Where are my glasses?")}
+            onClick={() => onStartListening('Where are my glasses?')}
             className="flex items-center gap-1.5 px-3 py-1.5 rounded-xl bg-[#2E5D57] text-[#FBF7EF] text-xs sm:text-sm font-bold active:scale-95 transition-transform"
             aria-label="Ask assistant to locate an item using voice"
           >
             <Mic className="w-4 h-4" />
-            <span>{t('locateItem')}</span>
+            <span>{t ? t('locateItem') : 'Locate'}</span>
           </button>
         </div>
 
-        {/* On-Screen Text Response Area (MANDATORY for Low Hearing Support: simultaneous full text) */}
+        {/* On-Screen Text Response Area */}
         {queryResult && (
           <div
             id="item-finder-response-banner"
@@ -157,46 +163,52 @@ export const CardLostItems: React.FC<CardLostItemsProps> = ({
             Tap an item to announce its room location:
           </p>
 
-          {trackedItems.map((item) => {
-            const isCurrent = selectedItem?.id === item.id;
-            return (
-              <button
-                key={item.id}
-                type="button"
-                onClick={() => handleItemTap(item)}
-                disabled={isLoading}
-                className={`w-full text-left p-3 rounded-xl border-2 transition-all flex items-center justify-between gap-3 active:scale-[0.98] ${
-                  isCurrent
-                    ? 'bg-white border-[#2E5D57] shadow-sm'
-                    : 'bg-white/80 border-[#EAE1D0] hover:border-[#2E5D57]/60'
-                }`}
-                aria-label={`Find ${item.name}. Last seen in ${item.room}, ${item.relativeTime}.`}
-              >
-                <div className="flex items-center gap-3 min-w-0">
-                  <div className="w-11 h-11 rounded-xl bg-[#FBF7EF] border border-[#EAE1D0] flex items-center justify-center shrink-0">
-                    {getItemIcon(item.iconName)}
-                  </div>
-                  <div className="min-w-0">
-                    <h3 className="font-bold text-base sm:text-lg text-[#2B2A28] truncate">
-                      {item.name}
-                    </h3>
-                    <div className="flex items-center gap-1.5 text-xs sm:text-sm text-[#2B2A28]/80">
-                      <MapPin className="w-3.5 h-3.5 text-[#2E5D57] shrink-0" />
-                      <span className="font-semibold text-[#2E5D57] truncate">{item.room}</span>
+          {displayItems.length > 0 ? (
+            displayItems.map((item) => {
+              const isCurrent = selectedItem?.id === item.id;
+              return (
+                <button
+                  key={item.id}
+                  type="button"
+                  onClick={() => handleItemTap(item)}
+                  disabled={isLoading}
+                  className={`w-full text-left p-3 rounded-xl border-2 transition-all flex items-center justify-between gap-3 active:scale-[0.98] ${
+                    isCurrent
+                      ? 'bg-white border-[#2E5D57] shadow-sm'
+                      : 'bg-white/80 border-[#EAE1D0] hover:border-[#2E5D57]/60'
+                  }`}
+                  aria-label={`Find ${item.name}. Last seen in ${item.room}, ${item.relativeTime}.`}
+                >
+                  <div className="flex items-center gap-3 min-w-0">
+                    <div className="w-11 h-11 rounded-xl bg-[#FBF7EF] border border-[#EAE1D0] flex items-center justify-center shrink-0">
+                      {getItemIcon(item.iconName)}
+                    </div>
+                    <div className="min-w-0">
+                      <h3 className="font-bold text-base sm:text-lg text-[#2B2A28] truncate">
+                        {item.name}
+                      </h3>
+                      <div className="flex items-center gap-1.5 text-xs sm:text-sm text-[#2B2A28]/80">
+                        <MapPin className="w-3.5 h-3.5 text-[#2E5D57] shrink-0" />
+                        <span className="font-semibold text-[#2E5D57] truncate">{item.room}</span>
+                      </div>
                     </div>
                   </div>
-                </div>
 
-                <span className="text-xs font-medium text-[#2B2A28]/70 bg-[#FBF7EF] px-2.5 py-1 rounded-lg border border-[#EAE1D0] shrink-0">
-                  {item.relativeTime}
-                </span>
-              </button>
-            );
-          })}
+                  <span className="text-xs font-medium text-[#2B2A28]/70 bg-[#FBF7EF] px-2.5 py-1 rounded-lg border border-[#EAE1D0] shrink-0">
+                    {item.relativeTime}
+                  </span>
+                </button>
+              );
+            })
+          ) : (
+            <div className="p-6 rounded-xl bg-white border border-[#EAE1D0] text-center text-sm text-[#2B2A28]/70">
+              No tracked items registered currently.
+            </div>
+          )}
         </div>
       </div>
 
-      {/* Privacy Notice (No GPS, No Camera, No Cloud Tracking) */}
+      {/* Privacy Notice */}
       <div className="pt-4 mt-auto border-t border-[#EAE1D0]/80 flex flex-col sm:flex-row items-center justify-between gap-2 text-center sm:text-left text-xs text-[#2B2A28]/70">
         <span>Local room beacons only · No GPS or camera tracking</span>
         <span className="font-medium text-[#2E5D57]">Tap item or say &apos;Where are my keys?&apos;</span>
@@ -204,3 +216,5 @@ export const CardLostItems: React.FC<CardLostItemsProps> = ({
     </article>
   );
 };
+
+export default CardLostItems;

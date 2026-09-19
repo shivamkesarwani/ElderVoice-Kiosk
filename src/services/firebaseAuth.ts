@@ -15,27 +15,77 @@ import {
 } from 'firebase/auth';
 import { CaregiverUser } from '../types';
 
-// Default / fallback Firebase configuration
+/**
+ * Check whether real Firebase credentials have been configured in environment variables.
+ * Returns false if credentials are unset or placeholders.
+ */
+export function isFirebaseConfigured(): boolean {
+  try {
+    const apiKey =
+      typeof import.meta !== 'undefined'
+        ? import.meta.env?.VITE_FIREBASE_API_KEY
+        : typeof process !== 'undefined'
+        ? process.env?.VITE_FIREBASE_API_KEY
+        : undefined;
+
+    const projectId =
+      typeof import.meta !== 'undefined'
+        ? import.meta.env?.VITE_FIREBASE_PROJECT_ID
+        : typeof process !== 'undefined'
+        ? process.env?.VITE_FIREBASE_PROJECT_ID
+        : undefined;
+
+    if (!apiKey || !projectId) return false;
+    if (
+      apiKey.includes('MockKey') ||
+      apiKey === 'MY_FIREBASE_API_KEY' ||
+      projectId === 'eldervoice-kiosk'
+    ) {
+      return false;
+    }
+    return true;
+  } catch {
+    return false;
+  }
+}
+
 const firebaseConfig = {
-  apiKey: import.meta.env.VITE_FIREBASE_API_KEY || "AIzaSyMockKeyForElderVoiceKiosk2026",
-  authDomain: import.meta.env.VITE_FIREBASE_AUTH_DOMAIN || "eldervoice-kiosk.firebaseapp.com",
-  projectId: import.meta.env.VITE_FIREBASE_PROJECT_ID || "eldervoice-kiosk",
-  storageBucket: import.meta.env.VITE_FIREBASE_STORAGE_BUCKET || "eldervoice-kiosk.appspot.com",
-  messagingSenderId: import.meta.env.VITE_FIREBASE_MESSAGING_SENDER_ID || "1029384756",
-  appId: import.meta.env.VITE_FIREBASE_APP_ID || "1:1029384756:web:abcd1234ef56",
+  apiKey:
+    (typeof import.meta !== 'undefined' ? import.meta.env?.VITE_FIREBASE_API_KEY : '') || '',
+  authDomain:
+    (typeof import.meta !== 'undefined' ? import.meta.env?.VITE_FIREBASE_AUTH_DOMAIN : '') || '',
+  projectId:
+    (typeof import.meta !== 'undefined' ? import.meta.env?.VITE_FIREBASE_PROJECT_ID : '') || '',
+  storageBucket:
+    (typeof import.meta !== 'undefined' ? import.meta.env?.VITE_FIREBASE_STORAGE_BUCKET : '') || '',
+  messagingSenderId:
+    (typeof import.meta !== 'undefined'
+      ? import.meta.env?.VITE_FIREBASE_MESSAGING_SENDER_ID
+      : '') || '',
+  appId:
+    (typeof import.meta !== 'undefined' ? import.meta.env?.VITE_FIREBASE_APP_ID : '') || '',
 };
 
 let app: any = null;
 let auth: Auth | null = null;
 
-try {
-  app = getApps().length > 0 ? getApp() : initializeApp(firebaseConfig);
-  auth = getAuth(app);
-} catch (err) {
-  console.warn('[ElderVoice Caregiver Auth] Firebase Auth initialization notice:', err);
+if (isFirebaseConfigured()) {
+  try {
+    app = getApps().length > 0 ? getApp() : initializeApp(firebaseConfig);
+    auth = getAuth(app);
+  } catch (err) {
+    console.warn('[ElderVoice Caregiver Auth] Firebase Auth initialization notice:', err);
+  }
 }
 
 export { auth };
+
+/**
+ * Allows injecting a mock Auth instance for unit tests
+ */
+export function setFirebaseAuthForTesting(mockAuth: Auth | null): void {
+  auth = mockAuth;
+}
 
 // Active caregiver session state in memory + local persistence
 const STORAGE_KEY = 'eldervoice_caregiver_session';
@@ -64,87 +114,66 @@ export function saveCaregiverSession(user: CaregiverUser | null): void {
 
 /**
  * Sign in using Google OAuth
+ * Fails strictly if Firebase is not configured or if the OAuth request fails.
+ * Never fabricates a fallback user session.
  */
 export async function loginWithGoogle(): Promise<CaregiverUser> {
-  if (auth) {
-    try {
-      const provider = new GoogleAuthProvider();
-      provider.setCustomParameters({ prompt: 'select_account' });
-      const result = await signInWithPopup(auth, provider);
-      const fbUser = result.user;
-      const caregiver: CaregiverUser = {
-        uid: fbUser.uid,
-        email: fbUser.email,
-        displayName: fbUser.displayName || 'Family Caregiver',
-        photoURL: fbUser.photoURL,
-        authProvider: 'google',
-      };
-      saveCaregiverSession(caregiver);
-      return caregiver;
-    } catch (authError: any) {
-      console.warn('[Firebase Auth] Popup blocked or unconfigured domain. Falling back to companion demo auth:', authError.message);
-    }
+  if (!auth) {
+    throw new Error(
+      'Sign-in is not configured yet. Firebase credentials must be configured for caregiver access.'
+    );
   }
 
-  // Seamless fallback for iframe sandbox / unconfigured OAuth client
-  const fallbackUser: CaregiverUser = {
-    uid: 'google-cg-' + Date.now().toString().slice(-6),
-    email: 'sarah.miller.caregiver@gmail.com',
-    displayName: 'Sarah Miller (Daughter)',
-    photoURL: 'https://images.unsplash.com/photo-1544005313-94ddf0286df2?auto=format&fit=crop&w=160&q=80',
+  const provider = new GoogleAuthProvider();
+  provider.setCustomParameters({ prompt: 'select_account' });
+  const result = await signInWithPopup(auth, provider);
+  const fbUser = result.user;
+  const caregiver: CaregiverUser = {
+    uid: fbUser.uid,
+    email: fbUser.email || undefined,
+    displayName: fbUser.displayName || 'Family Caregiver',
+    photoURL: fbUser.photoURL || undefined,
     authProvider: 'google',
   };
-  saveCaregiverSession(fallbackUser);
-  return fallbackUser;
+  saveCaregiverSession(caregiver);
+  return caregiver;
 }
 
 /**
- * Sign in using Email + Password
+ * Sign in or Register using Email + Password
+ * Fails strictly if Firebase is not configured or credentials are bad.
+ * Never fabricates a fallback user session.
  */
-export async function loginWithEmail(email: string, pass: string): Promise<CaregiverUser> {
+export async function loginWithEmail(
+  email: string,
+  pass: string,
+  isRegistering: boolean = false
+): Promise<CaregiverUser> {
   const trimmedEmail = email.trim();
-  if (auth) {
-    try {
-      const result = await signInWithEmailAndPassword(auth, trimmedEmail, pass);
-      const fbUser = result.user;
-      const caregiver: CaregiverUser = {
-        uid: fbUser.uid,
-        email: fbUser.email,
-        displayName: fbUser.displayName || trimmedEmail.split('@')[0],
-        authProvider: 'password',
-      };
-      saveCaregiverSession(caregiver);
-      return caregiver;
-    } catch (err: any) {
-      // If user not found, try to create account or fallback seamlessly
-      if (err.code === 'auth/user-not-found' || err.code === 'auth/invalid-credential') {
-        try {
-          const newResult = await createUserWithEmailAndPassword(auth, trimmedEmail, pass);
-          const fbUser = newResult.user;
-          const caregiver: CaregiverUser = {
-            uid: fbUser.uid,
-            email: fbUser.email,
-            displayName: trimmedEmail.split('@')[0],
-            authProvider: 'password',
-          };
-          saveCaregiverSession(caregiver);
-          return caregiver;
-        } catch (innerErr) {
-          console.warn('[Firebase Auth] createUser fallback to companion simulation', innerErr);
-        }
-      }
-    }
+  if (!trimmedEmail || !pass) {
+    throw new Error('Please enter both email address and password.');
   }
 
-  // Fallback demo user
-  const fallbackUser: CaregiverUser = {
-    uid: 'email-cg-' + Date.now().toString().slice(-6),
-    email: trimmedEmail || 'caregiver.sarah@familycare.org',
-    displayName: trimmedEmail ? trimmedEmail.split('@')[0] : 'Sarah (Caregiver)',
+  if (!auth) {
+    throw new Error(
+      'Sign-in is not configured yet. Firebase credentials must be configured for caregiver access.'
+    );
+  }
+
+  const result = isRegistering
+    ? await createUserWithEmailAndPassword(auth, trimmedEmail, pass)
+    : await signInWithEmailAndPassword(auth, trimmedEmail, pass);
+
+  const fbUser = result.user;
+  const caregiver: CaregiverUser = {
+    uid: fbUser.uid,
+    email: fbUser.email || trimmedEmail,
+    displayName: fbUser.displayName || trimmedEmail.split('@')[0] || 'Caregiver',
+    photoURL: fbUser.photoURL || undefined,
     authProvider: 'password',
   };
-  saveCaregiverSession(fallbackUser);
-  return fallbackUser;
+  saveCaregiverSession(caregiver);
+  return caregiver;
 }
 
 /**
@@ -156,7 +185,7 @@ export function setupRecaptcha(containerId: string): RecaptchaVerifier | null {
     return new RecaptchaVerifier(auth, containerId, {
       size: 'invisible',
       callback: () => {
-        // reCAPTCHA solved - will proceed with submit
+        // reCAPTCHA solved
       },
     });
   } catch (err) {
@@ -167,56 +196,51 @@ export function setupRecaptcha(containerId: string): RecaptchaVerifier | null {
 
 /**
  * Send Phone SMS OTP
+ * Strictly requires real Firebase Auth and RecaptchaVerifier.
  */
-let simulatedConfirmationResult: ConfirmationResult | null = null;
-
 export async function sendPhoneOtp(
   phoneNumber: string,
   verifier: RecaptchaVerifier | null
-): Promise<{ confirmationResult?: ConfirmationResult; isSimulated: boolean }> {
-  if (auth && verifier) {
-    try {
-      const confirmationResult = await signInWithPhoneNumber(auth, phoneNumber, verifier);
-      return { confirmationResult, isSimulated: false };
-    } catch (err: any) {
-      console.warn('[Firebase Auth] Phone Auth SMS notice:', err.message);
-    }
+): Promise<{ confirmationResult: ConfirmationResult }> {
+  if (!auth) {
+    throw new Error(
+      'Sign-in is not configured yet. Firebase credentials must be configured for caregiver access.'
+    );
+  }
+  if (!verifier) {
+    throw new Error('reCAPTCHA verifier is required for phone verification.');
   }
 
-  // Fallback simulated OTP (Default test OTP: 123456)
-  return { isSimulated: true };
+  const confirmationResult = await signInWithPhoneNumber(auth, phoneNumber, verifier);
+  return { confirmationResult };
 }
 
 /**
  * Confirm Phone SMS OTP code
+ * Only succeeds if confirmation.confirm(otpCode) actually resolves.
+ * Never fabricates a fallback session.
  */
 export async function confirmPhoneOtp(
   otpCode: string,
   phoneNumber: string,
   confirmation?: ConfirmationResult | null
 ): Promise<CaregiverUser> {
-  if (confirmation) {
-    try {
-      const result = await confirmation.confirm(otpCode);
-      const fbUser = result.user;
-      const caregiver: CaregiverUser = {
-        uid: fbUser.uid,
-        phoneNumber: fbUser.phoneNumber || phoneNumber,
-        displayName: 'Family Caregiver (' + (phoneNumber.slice(-4) || 'Phone') + ')',
-        authProvider: 'phone',
-      };
-      saveCaregiverSession(caregiver);
-      return caregiver;
-    } catch (err) {
-      console.warn('Firebase confirm error, using simulated confirmation', err);
-    }
+  if (!auth) {
+    throw new Error(
+      'Sign-in is not configured yet. Firebase credentials must be configured for caregiver access.'
+    );
+  }
+  if (!confirmation || typeof confirmation.confirm !== 'function') {
+    throw new Error('No active verification session. Please request an SMS code first.');
   }
 
-  // Simulated OTP verification
+  const result = await confirmation.confirm(otpCode);
+  const fbUser = result.user;
   const caregiver: CaregiverUser = {
-    uid: 'phone-cg-' + Date.now().toString().slice(-6),
-    phoneNumber: phoneNumber || '+1 (555) 019-2834',
-    displayName: 'Family Member (' + (phoneNumber ? phoneNumber.slice(-4) : '555') + ')',
+    uid: fbUser.uid,
+    phoneNumber: fbUser.phoneNumber || phoneNumber,
+    displayName:
+      fbUser.displayName || 'Family Caregiver (' + (phoneNumber.slice(-4) || 'Phone') + ')',
     authProvider: 'phone',
   };
   saveCaregiverSession(caregiver);

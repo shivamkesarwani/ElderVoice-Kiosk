@@ -1,5 +1,6 @@
-import React, { useState } from 'react';
-import { Lock, X, Check, AlertCircle } from './Icons';
+import React, { useState, useEffect } from 'react';
+import { Lock, AlertCircle, Check } from './Icons';
+import { isPinConfigured, verifyPin, setCaregiverPin } from '../services/pinService';
 
 interface PinModalProps {
   isOpen: boolean;
@@ -13,30 +14,105 @@ export const PinModal: React.FC<PinModalProps> = ({
   isOpen,
   onSuccess,
   onCancel,
-  title = "Caregiver Local PIN",
-  description = "Enter local kiosk PIN (default 1234) for quick on-device configuration.",
+  title,
+  description,
 }) => {
   const [pin, setPin] = useState('');
   const [error, setError] = useState(false);
+  const [errorMessage, setErrorMessage] = useState<string | null>(null);
+
+  // First-launch setup flow if no PIN is configured in env or localStorage
+  const [isConfigured, setIsConfigured] = useState<boolean>(true);
+  const [setupStep, setSetupStep] = useState<'enter' | 'confirm'>('enter');
+  const [initialSetupPin, setInitialSetupPin] = useState<string>('');
+
+  useEffect(() => {
+    if (isOpen) {
+      setPin('');
+      setError(false);
+      setErrorMessage(null);
+      const configured = isPinConfigured();
+      setIsConfigured(configured);
+      setSetupStep('enter');
+      setInitialSetupPin('');
+    }
+  }, [isOpen]);
 
   if (!isOpen) return null;
+
+  const modalTitle =
+    title ||
+    (!isConfigured
+      ? setupStep === 'enter'
+        ? 'Set Caregiver PIN'
+        : 'Confirm Caregiver PIN'
+      : 'Caregiver Local PIN');
+
+  const modalDescription =
+    description ||
+    (!isConfigured
+      ? setupStep === 'enter'
+        ? 'Create a 4-digit PIN for on-device kiosk configuration.'
+        : 'Please re-enter the 4-digit PIN to confirm.'
+      : 'Enter your 4-digit caregiver PIN for on-device configuration.');
 
   const handleDigit = (digit: string) => {
     if (pin.length < 4) {
       const nextPin = pin + digit;
       setPin(nextPin);
       setError(false);
+      setErrorMessage(null);
+
       if (nextPin.length === 4) {
-        if (nextPin === '1234' || nextPin === '0000') {
-          setTimeout(() => {
-            setPin('');
-            onSuccess();
-          }, 150);
+        if (!isConfigured) {
+          // First use setup workflow
+          if (setupStep === 'enter') {
+            setInitialSetupPin(nextPin);
+            setTimeout(() => {
+              setPin('');
+              setSetupStep('confirm');
+            }, 180);
+          } else {
+            // Confirm step
+            if (nextPin === initialSetupPin) {
+              const saved = setCaregiverPin(nextPin);
+              if (saved) {
+                setIsConfigured(true);
+                setTimeout(() => {
+                  setPin('');
+                  onSuccess();
+                }, 150);
+              } else {
+                setError(true);
+                setErrorMessage('Failed to save PIN. Please try again.');
+                setPin('');
+                setSetupStep('enter');
+              }
+            } else {
+              setTimeout(() => {
+                setError(true);
+                setErrorMessage('PINs do not match. Please start over.');
+                setPin('');
+                setSetupStep('enter');
+                setInitialSetupPin('');
+              }, 250);
+            }
+          }
         } else {
-          setTimeout(() => {
-            setError(true);
-            setPin('');
-          }, 250);
+          // Standard validation against configured PIN (hash in localStorage or env variable)
+          // Strictly no hardcoded bypasses
+          if (verifyPin(nextPin)) {
+            setTimeout(() => {
+              setPin('');
+              onSuccess();
+            }, 150);
+          } else {
+            setTimeout(() => {
+              setError(true);
+              setErrorMessage('Incorrect PIN. Please try again.');
+              setPin('');
+            }, 250);
+          }
         }
       }
     }
@@ -45,11 +121,13 @@ export const PinModal: React.FC<PinModalProps> = ({
   const handleBackspace = () => {
     setPin((prev) => prev.slice(0, -1));
     setError(false);
+    setErrorMessage(null);
   };
 
   const handleClear = () => {
     setPin('');
     setError(false);
+    setErrorMessage(null);
   };
 
   return (
@@ -65,10 +143,10 @@ export const PinModal: React.FC<PinModalProps> = ({
         </div>
 
         <h2 id="pin-modal-title" className="font-serif text-2xl font-bold text-[#2B2A28]">
-          {title}
+          {modalTitle}
         </h2>
         <p className="text-xs sm:text-sm text-[#2B2A28]/75 mt-1 mb-4">
-          {description}
+          {modalDescription}
         </p>
 
         {/* 4-digit indicator dots */}
@@ -88,7 +166,7 @@ export const PinModal: React.FC<PinModalProps> = ({
         {error && (
           <div className="text-xs text-[#C2401F] font-bold mt-2 flex items-center gap-1">
             <AlertCircle className="w-3.5 h-3.5" />
-            <span>Incorrect PIN. Please try 1234.</span>
+            <span>{errorMessage || 'Incorrect PIN. Please try again.'}</span>
           </div>
         )}
 

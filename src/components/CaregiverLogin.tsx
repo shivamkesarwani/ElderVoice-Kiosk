@@ -17,6 +17,7 @@ import {
   sendPhoneOtp,
   confirmPhoneOtp,
   setupRecaptcha,
+  isFirebaseConfigured,
 } from '../services/firebaseAuth';
 
 interface CaregiverLoginProps {
@@ -37,24 +38,28 @@ export const CaregiverLogin: React.FC<CaregiverLoginProps> = ({
   const [errorMessage, setErrorMessage] = useState<string | null>(null);
 
   // Email form state
-  const [email, setEmail] = useState('sarah.miller@familycare.org');
-  const [password, setPassword] = useState('••••••••');
+  const [email, setEmail] = useState('');
+  const [password, setPassword] = useState('');
   const [isRegistering, setIsRegistering] = useState(false);
 
   // Phone form state
-  const [phoneNumber, setPhoneNumber] = useState('+1 (555) 019-2834');
+  const [phoneNumber, setPhoneNumber] = useState('');
   const [otpSent, setOtpSent] = useState(false);
   const [otpCode, setOtpCode] = useState('');
   const [confirmationResult, setConfirmationResult] = useState<any>(null);
 
   useEffect(() => {
-    // Initialize reCAPTCHA verifier if on phone tab
-    if (activeTab === 'phone' && !otpSent) {
+    // Initialize reCAPTCHA verifier if on phone tab and configured
+    if (activeTab === 'phone' && !otpSent && isFirebaseConfigured()) {
       setupRecaptcha('recaptcha-container');
     }
   }, [activeTab, otpSent]);
 
   const handleGoogleSignIn = async () => {
+    if (!isFirebaseConfigured()) {
+      setErrorMessage('Sign-in is not configured yet. Firebase credentials must be configured for caregiver access.');
+      return;
+    }
     setIsLoading(true);
     setErrorMessage(null);
     try {
@@ -70,6 +75,10 @@ export const CaregiverLogin: React.FC<CaregiverLoginProps> = ({
 
   const handleEmailSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
+    if (!isFirebaseConfigured()) {
+      setErrorMessage('Sign-in is not configured yet. Firebase credentials must be configured for caregiver access.');
+      return;
+    }
     if (!email.trim() || !password) {
       setErrorMessage('Please enter both email address and password.');
       return;
@@ -77,7 +86,7 @@ export const CaregiverLogin: React.FC<CaregiverLoginProps> = ({
     setIsLoading(true);
     setErrorMessage(null);
     try {
-      const user = await loginWithEmail(email, password);
+      const user = await loginWithEmail(email, password, isRegistering);
       onShowToast(`Welcome, ${user.displayName || user.email}!`);
       onLoginSuccess(user);
     } catch (err: any) {
@@ -89,6 +98,10 @@ export const CaregiverLogin: React.FC<CaregiverLoginProps> = ({
 
   const handleSendPhoneOtp = async (e: React.FormEvent) => {
     e.preventDefault();
+    if (!isFirebaseConfigured()) {
+      setErrorMessage('Sign-in is not configured yet. Firebase credentials must be configured for caregiver access.');
+      return;
+    }
     if (!phoneNumber.trim()) {
       setErrorMessage('Please enter a valid phone number.');
       return;
@@ -110,6 +123,10 @@ export const CaregiverLogin: React.FC<CaregiverLoginProps> = ({
 
   const handleVerifyOtp = async (e: React.FormEvent) => {
     e.preventDefault();
+    if (!isFirebaseConfigured()) {
+      setErrorMessage('Sign-in is not configured yet. Firebase credentials must be configured for caregiver access.');
+      return;
+    }
     if (!otpCode.trim()) {
       setErrorMessage('Please enter the 6-digit verification code sent via SMS.');
       return;
@@ -173,6 +190,25 @@ export const CaregiverLogin: React.FC<CaregiverLoginProps> = ({
             <strong className="text-[#2E5D57]">Senior-Friendly Guarantee:</strong> Eleanor’s kiosk dashboard, voice features, reminders, and SOS remain permanently accessible with <em>zero login required</em>.
           </span>
         </div>
+
+        {/* Unconfigured Firebase Alert */}
+        {!isFirebaseConfigured() && (
+          <div
+            id="caregiver-unconfigured-alert"
+            className="mb-5 p-4 bg-[#D9714B]/15 border-2 border-[#D9714B] rounded-2xl flex items-start gap-3 text-[#2B2A28]"
+          >
+            <AlertCircle className="w-5 h-5 text-[#C2401F] shrink-0 mt-0.5" />
+            <div className="text-left">
+              <h3 className="font-bold text-sm sm:text-base text-[#C2401F]">
+                Sign-in is not configured yet
+              </h3>
+              <p className="text-xs sm:text-sm text-[#2B2A28]/80 mt-1">
+                Caregiver login requires a real Firebase project with Authentication enabled.
+                Please configure <code className="bg-white/80 px-1 py-0.5 rounded border border-[#EAE1D0]">VITE_FIREBASE_API_KEY</code> and <code className="bg-white/80 px-1 py-0.5 rounded border border-[#EAE1D0]">VITE_FIREBASE_PROJECT_ID</code> in your environment variables.
+              </p>
+            </div>
+          </div>
+        )}
 
         {/* Method Switcher Tabs */}
         <div className="grid grid-cols-3 gap-2 p-1 bg-white border border-[#EAE1D0] rounded-2xl mb-6">
@@ -333,9 +369,7 @@ export const CaregiverLogin: React.FC<CaregiverLoginProps> = ({
                   {isLoading ? (
                     <RefreshCw className="w-5 h-5 animate-spin" />
                   ) : (
-                    <>
-                      <span>Send SMS Verification Code</span>
-                    </>
+                    <span>Send SMS Verification Code</span>
                   )}
                 </button>
               </form>
@@ -371,7 +405,7 @@ export const CaregiverLogin: React.FC<CaregiverLoginProps> = ({
                     required
                   />
                   <span className="text-xs text-[#2B2A28]/70 mt-1 block text-center">
-                    Enter code received on your phone (or test with 123456)
+                    Enter the 6-digit verification code sent to your mobile phone
                   </span>
                 </div>
 
