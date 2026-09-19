@@ -64,30 +64,30 @@ export const CardReminders: React.FC<CardRemindersProps> = ({ onShowToast }) => 
   const [activeNudgeMedId, setActiveNudgeMedId] = useState<string>('med-1');
   const [secondsRemaining, setSecondsRemaining] = useState<number>(20);
 
-  // Gentle reminder automatic progression simulation
+  // Gentle reminder automatic countdown progression simulation
   useEffect(() => {
-    let timer: NodeJS.Timeout;
-    if (nudgeStage === 'gentle' || nudgeStage === 'second_nudge') {
-      timer = setInterval(() => {
-        setSecondsRemaining((prev) => {
-          if (prev <= 1) {
-            if (nudgeStage === 'gentle') {
-              setNudgeStage('second_nudge');
-              onShowToast('Second reminder: Lisinopril is still pending!');
-              return 15; // 15 seconds before caregiver alert
-            } else if (nudgeStage === 'second_nudge') {
-              setNudgeStage('notified_caregiver');
-              onShowToast('Simulated Alert: Notifying caregiver Sarah that 8:00 AM Lisinopril was unconfirmed.');
-              return 0;
-            }
-          }
-          return prev - 1;
-        });
-      }, 1000);
-    }
+    if (nudgeStage !== 'gentle' && nudgeStage !== 'second_nudge') return;
+
+    const timer = setInterval(() => {
+      setSecondsRemaining((prev) => Math.max(0, prev - 1));
+    }, 1000);
 
     return () => clearInterval(timer);
-  }, [nudgeStage, onShowToast]);
+  }, [nudgeStage]);
+
+  // Handle stage transitions and toast announcements safely outside state updater
+  useEffect(() => {
+    if (secondsRemaining <= 0) {
+      if (nudgeStage === 'gentle') {
+        setNudgeStage('second_nudge');
+        setSecondsRemaining(15);
+        onShowToast('Second reminder: Lisinopril is still pending!');
+      } else if (nudgeStage === 'second_nudge') {
+        setNudgeStage('notified_caregiver');
+        onShowToast('Simulated Alert: Notifying caregiver Sarah that 8:00 AM Lisinopril was unconfirmed.');
+      }
+    }
+  }, [secondsRemaining, nudgeStage, onShowToast]);
 
   const activeMed = medicines.find((m) => m.id === activeNudgeMedId) || medicines[0];
 
