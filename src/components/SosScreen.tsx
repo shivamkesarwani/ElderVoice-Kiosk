@@ -1,5 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { PhoneCall, XCircle, AlertTriangle, ShieldCheck, HeartPulse, ArrowLeft } from './Icons';
+import { useLanguage } from '../context/LanguageContext';
 
 /* =========================================================================
    NOTE: UI SIMULATION ONLY
@@ -13,24 +14,27 @@ interface SosScreenProps {
 }
 
 export const SosScreen: React.FC<SosScreenProps> = ({ onCancel, onCallPlaced }) => {
+  const { t } = useLanguage();
   const [secondsLeft, setSecondsLeft] = useState(10);
   const [isDispatched, setIsDispatched] = useState(false);
 
   useEffect(() => {
     if (isDispatched) return;
 
-    if (secondsLeft <= 0) {
-      setIsDispatched(true);
-      onCallPlaced();
-      return;
-    }
-
     const timer = setInterval(() => {
-      setSecondsLeft((prev) => prev - 1);
+      setSecondsLeft((prev) => {
+        if (prev <= 1) {
+          clearInterval(timer);
+          setIsDispatched(true);
+          onCallPlaced();
+          return 0;
+        }
+        return prev - 1;
+      });
     }, 1000);
 
     return () => clearInterval(timer);
-  }, [secondsLeft, isDispatched, onCallPlaced]);
+  }, [isDispatched, onCallPlaced]);
 
   const handleImmediateTrigger = () => {
     setSecondsLeft(0);
@@ -64,7 +68,7 @@ export const SosScreen: React.FC<SosScreenProps> = ({ onCancel, onCallPlaced }) 
               id="sos-status-heading"
               className="font-serif text-3xl sm:text-4xl lg:text-5xl font-bold text-[#C2401F] tracking-tight"
             >
-              Calling Daughter Sarah &amp; Care Responders…
+              {t('emergencyCall')}
             </h2>
             <p id="sos-status-desc" className="text-xl sm:text-2xl text-[#2B2A28] mt-3 font-medium">
               Connecting in <span className="font-bold text-[#C2401F] text-3xl sm:text-4xl">{secondsLeft}</span> seconds
@@ -91,11 +95,11 @@ export const SosScreen: React.FC<SosScreenProps> = ({ onCancel, onCallPlaced }) 
               id="btn-cancel-sos"
               onClick={onCancel}
               className="w-full min-h-[80px] px-8 py-4 rounded-2xl bg-[#2E5D57] hover:bg-[#234641] text-[#FBF7EF] font-bold text-2xl sm:text-3xl active:scale-95 transition-transform flex items-center justify-center gap-3.5 border-4 border-[#1E433E] shadow-xl"
-              aria-label="Cancel emergency call - I am okay"
+              aria-label={t('cancelCall')}
               autoFocus
             >
               <XCircle className="w-9 h-9 stroke-[2.75] shrink-0" aria-hidden="true" />
-              <span>Cancel Call — I&apos;m Okay</span>
+              <span>{t('cancelCall')}</span>
             </button>
             <span className="text-sm font-semibold text-[#2B2A28]/70 mt-2">
               (Voice cancel also available: say &apos;cancel emergency&apos;)
@@ -109,7 +113,7 @@ export const SosScreen: React.FC<SosScreenProps> = ({ onCancel, onCallPlaced }) 
               onClick={handleImmediateTrigger}
               className="text-xs sm:text-sm font-semibold text-[#2E5D57] underline hover:text-[#D9714B]"
             >
-              (Test now: Skip 10s countdown)
+              ({t('callImmediately')})
             </button>
           </div>
         </div>
@@ -150,7 +154,7 @@ export const SosScreen: React.FC<SosScreenProps> = ({ onCancel, onCallPlaced }) 
             className="min-h-[64px] px-8 py-3.5 rounded-2xl bg-white border-3 border-[#2E5D57] text-[#2E5D57] font-bold text-xl flex items-center gap-2.5 active:scale-95 transition-transform hover:bg-[#2E5D57]/10"
           >
             <ArrowLeft className="w-6 h-6" />
-            <span>Return to Dashboard (False Alarm)</span>
+            <span>{t('returnToKiosk')}</span>
           </button>
         </div>
       )}

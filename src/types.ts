@@ -1,4 +1,40 @@
-export type ScreenView = 'home' | 'listening' | 'sos';
+export type ScreenView = 'home' | 'listening' | 'sos' | 'caregiver' | 'translator';
+
+export interface CaregiverUser {
+  uid: string;
+  email?: string | null;
+  phoneNumber?: string | null;
+  displayName?: string | null;
+  photoURL?: string | null;
+  authProvider: 'google' | 'phone' | 'password' | 'demo';
+}
+
+export interface MedicationEscalationLog {
+  id: string;
+  timestamp: string;
+  medicineName: string;
+  dosage: string;
+  scheduledTime: string;
+  status: 'taken_on_time' | 'gentle_nudge' | 'urgent_reminder' | 'caregiver_notified';
+  notes: string;
+}
+
+export interface LostItemLogEntry {
+  id: string;
+  timestamp: string;
+  itemName: string;
+  location: string;
+  queryType: 'voice_query' | 'manual_search' | 'beacon_update';
+  resolved: boolean;
+}
+
+export interface SystemHealthReport {
+  micPermission: 'granted' | 'denied' | 'prompt' | 'unsupported';
+  lastVoiceTimestamp: string;
+  geminiApiStatus: 'pass' | 'fail' | 'testing';
+  geminiMessage: string;
+  overallStatus: 'normal' | 'attention_needed';
+}
 
 export interface FamilyPhoto {
   id: string;
@@ -69,5 +105,15 @@ export interface TrackedItem {
 export interface AccessibilitySettings {
   largeText: boolean;
   highContrast: boolean;
+}
+
+export type LanguageCode = 'en' | 'hi' | 'mr' | 'pa' | 'es' | 'fr' | 'de' | 'it' | 'pt' | 'zh' | 'ja';
+
+export interface LanguageInfo {
+  code: LanguageCode;
+  name: string;
+  nativeName: string;
+  flag: string;
+  locale: string;
 }
 

@@ -302,3 +302,61 @@ export const MapPin: React.FC<IconProps> = (props) => (
   </BaseIcon>
 );
 
+export const User: React.FC<IconProps> = (props) => (
+  <BaseIcon {...props}>
+    <path d="M19 21v-2a4 4 0 0 0-4-4H9a4 4 0 0 0-4 4v2" />
+    <circle cx="12" cy="7" r="4" />
+  </BaseIcon>
+);
+
+export const Mail: React.FC<IconProps> = (props) => (
+  <BaseIcon {...props}>
+    <rect width="20" height="16" x="2" y="4" rx="2" />
+    <path d="m22 7-8.97 5.7a1.94 1.94 0 0 1-2.06 0L2 7" />
+  </BaseIcon>
+);
+
+export const KeyRound: React.FC<IconProps> = (props) => (
+  <BaseIcon {...props}>
+    <path d="M2 18v3c0 .6.4 1 1 1h4v-3h3v-3h2l1.4-1.4a6.5 6.5 0 1 0-4-4Z" />
+    <circle cx="16.5" cy="7.5" r=".5" fill="currentColor" />
+  </BaseIcon>
+);
+
+export const Activity: React.FC<IconProps> = (props) => (
+  <BaseIcon {...props}>
+    <path d="M22 12h-4l-3 9L9 3l-3 9H2" />
+  </BaseIcon>
+);
+
+export const AlertCircle: React.FC<IconProps> = (props) => (
+  <BaseIcon {...props}>
+    <circle cx="12" cy="12" r="10" />
+    <line x1="12" x2="12" y1="8" y2="12" />
+    <line x1="12" x2="12.01" y1="16" y2="16" />
+  </BaseIcon>
+);
+
+export const LogOut: React.FC<IconProps> = (props) => (
+  <BaseIcon {...props}>
+    <path d="M9 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h4" />
+    <polyline points="16 17 21 12 16 7" />
+    <line x1="21" x2="9" y1="12" y2="12" />
+  </BaseIcon>
+);
+
+export const Globe: React.FC<IconProps> = (props) => (
+  <BaseIcon {...props}>
+    <circle cx="12" cy="12" r="10" />
+    <path d="M12 2a14.5 14.5 0 0 0 0 20 14.5 14.5 0 0 0 0-20" />
+    <path d="M2 12h20" />
+  </BaseIcon>
+);
+
+export const ChevronDown: React.FC<IconProps> = (props) => (
+  <BaseIcon {...props}>
+    <path d="m6 9 6 6 6-6" />
+  </BaseIcon>
+);
+
+

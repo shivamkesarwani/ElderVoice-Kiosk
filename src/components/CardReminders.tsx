@@ -1,6 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { Pill, CheckCircle2, RotateCcw, AlertTriangle, Bell, Clock } from './Icons';
 import { MedicineItem, ReminderItem } from '../types';
+import { useLanguage } from '../context/LanguageContext';
 
 interface CardRemindersProps {
   onShowToast: (msg: string) => void;
@@ -55,6 +56,7 @@ const initialAppointments: ReminderItem[] = [
 ];
 
 export const CardReminders: React.FC<CardRemindersProps> = ({ onShowToast }) => {
+  const { t } = useLanguage();
   const [medicines, setMedicines] = useState<MedicineItem[]>(initialMedicines);
   const [appointments] = useState<ReminderItem[]>(initialAppointments);
   
@@ -67,16 +69,19 @@ export const CardReminders: React.FC<CardRemindersProps> = ({ onShowToast }) => 
   // Gentle reminder automatic countdown progression simulation
   useEffect(() => {
     if (nudgeStage !== 'gentle' && nudgeStage !== 'second_nudge') return;
+    if (medicines.length === 0) return;
 
     const timer = setInterval(() => {
       setSecondsRemaining((prev) => Math.max(0, prev - 1));
     }, 1000);
 
     return () => clearInterval(timer);
-  }, [nudgeStage]);
+  }, [nudgeStage, medicines.length]);
 
   // Handle stage transitions and toast announcements safely outside state updater
   useEffect(() => {
+    if (medicines.length === 0) return;
+
     if (secondsRemaining <= 0) {
       if (nudgeStage === 'gentle') {
         setNudgeStage('second_nudge');
@@ -87,9 +92,9 @@ export const CardReminders: React.FC<CardRemindersProps> = ({ onShowToast }) => 
         onShowToast('Simulated Alert: Notifying caregiver Sarah that 8:00 AM Lisinopril was unconfirmed.');
       }
     }
-  }, [secondsRemaining, nudgeStage, onShowToast]);
+  }, [secondsRemaining, nudgeStage, medicines.length, onShowToast]);
 
-  const activeMed = medicines.find((m) => m.id === activeNudgeMedId) || medicines[0];
+  const activeMed = medicines.find((m) => m.id === activeNudgeMedId) || medicines[0] || null;
 
   const handleMarkDoseTaken = (medId: string, timeStr: string) => {
     setMedicines((prev) =>
@@ -137,10 +142,10 @@ export const CardReminders: React.FC<CardRemindersProps> = ({ onShowToast }) => 
             </div>
             <div>
               <h2 className="font-serif text-2xl font-bold text-[#2B2A28]">
-                Medicine & Schedule
+                {t('cardRemindersTitle')}
               </h2>
               <span className="text-sm font-medium text-[#2B2A28]/80">
-                Multiple daily doses & caregiver alerts
+                {t('cardRemindersSubtitle')}
               </span>
             </div>
           </div>
@@ -156,7 +161,7 @@ export const CardReminders: React.FC<CardRemindersProps> = ({ onShowToast }) => 
         </div>
 
         {/* Nudge Stage Banners (Visual Alert for low-hearing support) */}
-        {nudgeStage === 'gentle' && (
+        {activeMed && nudgeStage === 'gentle' && (
           <div
             id="nudge-gentle-banner"
             className="mb-4 p-3.5 rounded-xl bg-[#2E5D57]/10 border-2 border-[#2E5D57] flex items-start gap-3 text-[#2B2A28]"
@@ -177,7 +182,7 @@ export const CardReminders: React.FC<CardRemindersProps> = ({ onShowToast }) => 
           </div>
         )}
 
-        {nudgeStage === 'second_nudge' && (
+        {activeMed && nudgeStage === 'second_nudge' && (
           <div
             id="nudge-second-banner"
             className="mb-4 p-3.5 rounded-xl bg-[#D9714B]/15 border-2 border-[#D9714B] flex items-start gap-3 text-[#2B2A28] animate-pulse"
@@ -192,13 +197,13 @@ export const CardReminders: React.FC<CardRemindersProps> = ({ onShowToast }) => 
                 <strong>{activeMed.name}</strong> was due at 8:00 AM and is still unconfirmed.
               </p>
               <span className="text-xs text-[#C2401F] block mt-1 font-bold">
-                Caregiver {activeMed.caregiverName} will be notified in {secondsRemaining}s.
+                Caregiver {activeMed.caregiverName || 'Sarah'} will be notified in {secondsRemaining}s.
               </span>
             </div>
           </div>
         )}
 
-        {nudgeStage === 'notified_caregiver' && (
+        {activeMed && nudgeStage === 'notified_caregiver' && (
           <div
             id="nudge-notified-banner"
             className="mb-4 p-3.5 rounded-xl bg-[#C2401F]/15 border-2 border-[#C2401F] flex items-start gap-3 text-[#2B2A28]"
@@ -210,7 +215,7 @@ export const CardReminders: React.FC<CardRemindersProps> = ({ onShowToast }) => 
             <div className="flex-1 text-sm sm:text-base">
               <span className="font-bold text-[#C2401F]">Mock Caregiver Notification Sent:</span>
               <p className="mt-0.5 font-medium">
-                Notifying <strong>{activeMed.caregiverName}</strong>: 8:00 AM {activeMed.name} unconfirmed.
+                Notifying <strong>{activeMed.caregiverName || 'Sarah'}</strong>: 8:00 AM {activeMed.name} unconfirmed.
               </p>
               <span className="text-xs text-[#2B2A28]/70 block mt-1 italic">
                 (UI simulation only — no actual SMS or physical dispenser activated)
@@ -226,63 +231,70 @@ export const CardReminders: React.FC<CardRemindersProps> = ({ onShowToast }) => 
           </h3>
 
           <div className="space-y-2.5">
-            {medicines.map((med) => (
-              <div
-                key={med.id}
-                className="flex items-center justify-between gap-3 p-3 rounded-xl bg-white border border-[#EAE1D0] hover:border-[#2E5D57]/50 transition-colors"
-              >
-                {/* Photo placeholder + Details */}
-                <div className="flex items-center gap-3 min-w-0">
-                  <div className="w-12 h-12 rounded-xl overflow-hidden bg-[#FBF7EF] border border-[#EAE1D0] shrink-0 flex items-center justify-center">
-                    <img
-                      src={med.photoUrl}
-                      alt={med.name}
-                      className="w-full h-full object-cover"
-                      loading="lazy"
-                    />
+            {medicines.length > 0 ? (
+              medicines.map((med) => (
+                <div
+                  key={med.id}
+                  className="flex items-center justify-between gap-3 p-3 rounded-xl bg-white border border-[#EAE1D0] hover:border-[#2E5D57]/50 transition-colors"
+                >
+                  {/* Photo placeholder + Details */}
+                  <div className="flex items-center gap-3 min-w-0">
+                    <div className="w-12 h-12 rounded-xl overflow-hidden bg-[#FBF7EF] border border-[#EAE1D0] shrink-0 flex items-center justify-center">
+                      <img
+                        src={med.photoUrl}
+                        alt={med.name}
+                        className="w-full h-full object-cover"
+                        loading="lazy"
+                        referrerPolicy="no-referrer"
+                      />
+                    </div>
+                    <div className="min-w-0">
+                      <h4 className="font-bold text-base sm:text-lg text-[#2B2A28] truncate">
+                        {med.name}
+                      </h4>
+                      <p className="text-xs sm:text-sm text-[#2B2A28]/80 truncate">
+                        {med.dosage}
+                      </p>
+                    </div>
                   </div>
-                  <div className="min-w-0">
-                    <h4 className="font-bold text-base sm:text-lg text-[#2B2A28] truncate">
-                      {med.name}
-                    </h4>
-                    <p className="text-xs sm:text-sm text-[#2B2A28]/80 truncate">
-                      {med.dosage}
-                    </p>
-                  </div>
-                </div>
 
-                {/* Dose Times & Action Buttons */}
-                <div className="flex items-center gap-2 shrink-0">
-                  {med.schedules.map((dose) => (
-                    <button
-                      key={dose.time}
-                      type="button"
-                      onClick={() => handleMarkDoseTaken(med.id, dose.time)}
-                      className={`min-h-[44px] px-3.5 py-1.5 rounded-xl font-bold text-xs sm:text-sm flex items-center gap-1.5 border-2 transition-all active:scale-95 ${
-                        dose.taken
-                          ? 'bg-[#2E5D57] border-[#2E5D57] text-white shadow-xs'
-                          : 'bg-[#FBF7EF] border-[#EAE1D0] text-[#2B2A28] hover:border-[#2E5D57]'
-                      }`}
-                      aria-label={`${med.name} at ${dose.time}, currently ${
-                        dose.taken ? 'Taken' : 'Pending'
-                      }. Tap to toggle.`}
-                    >
-                      {dose.taken ? (
-                        <>
-                          <CheckCircle2 className="w-4 h-4 text-white" />
-                          <span>{dose.time} Taken</span>
-                        </>
-                      ) : (
-                        <>
-                          <Clock className="w-4 h-4 text-[#2E5D57]" />
-                          <span>{dose.time}</span>
-                        </>
-                      )}
-                    </button>
-                  ))}
+                  {/* Dose Times & Action Buttons */}
+                  <div className="flex items-center gap-2 shrink-0">
+                    {med.schedules.map((dose) => (
+                      <button
+                        key={dose.time}
+                        type="button"
+                        onClick={() => handleMarkDoseTaken(med.id, dose.time)}
+                        className={`min-h-[44px] px-3.5 py-1.5 rounded-xl font-bold text-xs sm:text-sm flex items-center gap-1.5 border-2 transition-all active:scale-95 ${
+                          dose.taken
+                            ? 'bg-[#2E5D57] border-[#2E5D57] text-white shadow-xs'
+                            : 'bg-[#FBF7EF] border-[#EAE1D0] text-[#2B2A28] hover:border-[#2E5D57]'
+                        }`}
+                        aria-label={`${med.name} at ${dose.time}, currently ${
+                          dose.taken ? 'Taken' : 'Pending'
+                        }. Tap to toggle.`}
+                      >
+                        {dose.taken ? (
+                          <>
+                            <CheckCircle2 className="w-4 h-4 text-white" />
+                            <span>{dose.time} {t('taken')}</span>
+                          </>
+                        ) : (
+                          <>
+                            <Clock className="w-4 h-4 text-[#2E5D57]" />
+                            <span>{dose.time}</span>
+                          </>
+                        )}
+                      </button>
+                    ))}
+                  </div>
                 </div>
+              ))
+            ) : (
+              <div className="p-4 rounded-xl bg-white border border-[#EAE1D0] text-center text-sm text-[#2B2A28]/70">
+                No prescriptions currently scheduled for today.
               </div>
-            ))}
+            )}
           </div>
 
           {/* Other Daily Reminders (e.g. Book club appointment) */}
@@ -290,17 +302,23 @@ export const CardReminders: React.FC<CardRemindersProps> = ({ onShowToast }) => 
             <h3 className="text-xs font-bold uppercase tracking-wider text-[#2B2A28]/70 mb-2">
               Activities & Appointments
             </h3>
-            {appointments.map((appt) => (
-              <div
-                key={appt.id}
-                className="flex items-center gap-2.5 text-base sm:text-lg text-[#2B2A28] p-2.5 rounded-xl bg-white/60 border border-[#EAE1D0]"
-              >
-                <span className="text-[#2E5D57] font-bold text-xl leading-none select-none">•</span>
-                <span>
-                  <strong className="font-semibold text-[#2E5D57]">{appt.time}:</strong> {appt.title}
-                </span>
+            {appointments.length > 0 ? (
+              appointments.map((appt) => (
+                <div
+                  key={appt.id}
+                  className="flex items-center gap-2.5 text-base sm:text-lg text-[#2B2A28] p-2.5 rounded-xl bg-white/60 border border-[#EAE1D0]"
+                >
+                  <span className="text-[#2E5D57] font-bold text-xl leading-none select-none">•</span>
+                  <span>
+                    <strong className="font-semibold text-[#2E5D57]">{appt.time}:</strong> {appt.title}
+                  </span>
+                </div>
+              ))
+            ) : (
+              <div className="p-3 rounded-xl bg-white/60 border border-[#EAE1D0] text-center text-xs sm:text-sm text-[#2B2A28]/70">
+                No other appointments scheduled for today.
               </div>
-            ))}
+            )}
           </div>
         </div>
       </div>

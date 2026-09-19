@@ -4,19 +4,27 @@
  */
 
 import React, { useState, useEffect, useCallback } from 'react';
-import { ScreenView, AccessibilitySettings } from './types';
+import { ScreenView, AccessibilitySettings, CaregiverUser } from './types';
 import { Header } from './components/Header';
 import { HomeDashboard } from './components/HomeDashboard';
 import { SimulationToast } from './components/SimulationToast';
 import { AccessibilityPanel } from './components/AccessibilityPanel';
 import { ListeningScreen } from './components/ListeningScreen';
+import { LanguageTranslatorScreen } from './components/LanguageTranslatorScreen';
 import { SosScreen } from './components/SosScreen';
+import { CaregiverLogin } from './components/CaregiverLogin';
+import { CaregiverDashboard } from './components/CaregiverDashboard';
+import { PinModal } from './components/PinModal';
+import { onAuthStateChange } from './services/firebaseAuth';
+import { LanguageProvider } from './context/LanguageContext';
 
-export default function App() {
+function KioskApp() {
   const [currentScreen, setCurrentScreen] = useState<ScreenView>('home');
+  const [caregiverUser, setCaregiverUser] = useState<CaregiverUser | null>(null);
   const [activeVoicePrompt, setActiveVoicePrompt] = useState<string | undefined>(undefined);
   const [toastMessage, setToastMessage] = useState<string | null>(null);
   const [isA11yOpen, setIsA11yOpen] = useState(false);
+  const [isPinModalOpen, setIsPinModalOpen] = useState(false);
   const [a11ySettings, setA11ySettings] = useState<AccessibilitySettings>({
     largeText: false,
     highContrast: false,
@@ -24,6 +32,14 @@ export default function App() {
 
   const showToast = useCallback((msg: string) => {
     setToastMessage(msg);
+  }, []);
+
+  // Listen to Firebase Auth state for companion caregiver view
+  useEffect(() => {
+    const unsubscribe = onAuthStateChange((user) => {
+      setCaregiverUser(user);
+    });
+    return () => unsubscribe();
   }, []);
 
   const handleStartListening = (initialPrompt?: string) => {
@@ -54,7 +70,9 @@ export default function App() {
   useEffect(() => {
     const handleKeyDown = (e: KeyboardEvent) => {
       if (e.key === 'Escape') {
-        if (isA11yOpen) {
+        if (isPinModalOpen) {
+          setIsPinModalOpen(false);
+        } else if (isA11yOpen) {
           setIsA11yOpen(false);
         } else if (currentScreen !== 'home') {
           handleReturnHome();
@@ -64,7 +82,7 @@ export default function App() {
 
     window.addEventListener('keydown', handleKeyDown);
     return () => window.removeEventListener('keydown', handleKeyDown);
-  }, [currentScreen, isA11yOpen]);
+  }, [currentScreen, isA11yOpen, isPinModalOpen]);
 
   const handleSosCallPlaced = useCallback(() => {
     showToast("Emergency alert simulated: Dispatch & Sarah have been notified.");
@@ -76,11 +94,13 @@ export default function App() {
         a11ySettings.largeText ? 'large-text-mode' : ''
       } ${a11ySettings.highContrast ? 'high-contrast-mode' : ''}`}
     >
-      {/* Top Header - Always visible with Wordmark, Clock, PWA install, View Settings, and SOS Button */}
+      {/* Top Header - Always visible with Wordmark, Clock, PWA install, View Settings, Caregiver Access, Language Dropdown, and SOS Button */}
       <Header
         onSosClick={handleTriggerSos}
         onHomeClick={handleReturnHome}
         onOpenAccessibility={() => setIsA11yOpen(true)}
+        onCaregiverClick={() => setCurrentScreen('caregiver')}
+        onTranslatorClick={() => setCurrentScreen('translator')}
         isSosActive={currentScreen === 'sos'}
         onShowToast={showToast}
       />
@@ -90,6 +110,7 @@ export default function App() {
         {currentScreen === 'home' && (
           <HomeDashboard
             onStartListening={handleStartListening}
+            onOpenTranslator={() => setCurrentScreen('translator')}
             onShowToast={showToast}
             onSosClick={handleTriggerSos}
             isSosActive={false}
@@ -103,11 +124,36 @@ export default function App() {
           />
         )}
 
+        {currentScreen === 'translator' && (
+          <LanguageTranslatorScreen
+            onClose={handleReturnHome}
+            onShowToast={showToast}
+          />
+        )}
+
         {currentScreen === 'sos' && (
           <SosScreen
             onCancel={handleReturnHome}
             onCallPlaced={handleSosCallPlaced}
           />
+        )}
+
+        {/* Caregiver Companion View (Separate surface with Firebase Auth, read-only monitoring) */}
+        {currentScreen === 'caregiver' && (
+          caregiverUser ? (
+            <CaregiverDashboard
+              user={caregiverUser}
+              onLogout={() => setCaregiverUser(null)}
+              onBackToKiosk={handleReturnHome}
+              onShowToast={showToast}
+            />
+          ) : (
+            <CaregiverLogin
+              onLoginSuccess={(user) => setCaregiverUser(user)}
+              onBackToKiosk={handleReturnHome}
+              onShowToast={showToast}
+            />
+          )
         )}
       </div>
 
@@ -119,6 +165,16 @@ export default function App() {
         onUpdateSettings={handleUpdateA11y}
       />
 
+      {/* Local Kiosk PIN Modal for on-device config edits */}
+      <PinModal
+        isOpen={isPinModalOpen}
+        onSuccess={() => {
+          setIsPinModalOpen(false);
+          showToast('Local kiosk unlocked for on-device schedule edits.');
+        }}
+        onCancel={() => setIsPinModalOpen(false)}
+      />
+
       {/* Simulation Feedback Toast (also provides visual cue for alarms/chimes) */}
       {toastMessage && (
         <SimulationToast
@@ -127,5 +183,13 @@ export default function App() {
         />
       )}
     </div>
+  );
+}
+
+export default function App() {
+  return (
+    <LanguageProvider>
+      <KioskApp />
+    </LanguageProvider>
   );
 }

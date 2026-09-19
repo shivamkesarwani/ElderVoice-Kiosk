@@ -2,6 +2,7 @@ import React, { useState } from 'react';
 import { Search, Glasses, Key, Tv, Pill, MapPin, Mic, Volume2 } from './Icons';
 import { TrackedItem } from '../types';
 import { requestVoiceReply } from '../services/voiceService';
+import { useLanguage } from '../context/LanguageContext';
 
 interface CardLostItemsProps {
   onStartListening: (initialQuery?: string) => void;
@@ -47,6 +48,7 @@ export const CardLostItems: React.FC<CardLostItemsProps> = ({
   onStartListening,
   onShowToast,
 }) => {
+  const { t, language, languageInfo } = useLanguage();
   const [selectedItem, setSelectedItem] = useState<TrackedItem | null>(null);
   const [queryResult, setQueryResult] = useState<string | null>(null);
   const [isLoading, setIsLoading] = useState<boolean>(false);
@@ -72,7 +74,7 @@ export const CardLostItems: React.FC<CardLostItemsProps> = ({
     const query = `Where are my ${item.name.toLowerCase()}?`;
 
     try {
-      const response = await requestVoiceReply(query);
+      const response = await requestVoiceReply(query, language);
       const text = response.reply || `Your ${item.name.toLowerCase()} were last seen in the ${item.room} about ${item.relativeTime}.`;
       setQueryResult(text);
       onShowToast(`Located: ${item.name} in ${item.room}`);
@@ -81,6 +83,7 @@ export const CardLostItems: React.FC<CardLostItemsProps> = ({
       if ('speechSynthesis' in window) {
         window.speechSynthesis.cancel();
         const utterance = new SpeechSynthesisUtterance(text);
+        utterance.lang = languageInfo.locale || 'en-US';
         utterance.rate = 0.88; // Gentle, slower pace for seniors
         utterance.pitch = 1.0;
         window.speechSynthesis.speak(utterance);
@@ -107,10 +110,10 @@ export const CardLostItems: React.FC<CardLostItemsProps> = ({
             </div>
             <div>
               <h2 className="font-serif text-2xl font-bold text-[#2B2A28]">
-                Find My Things
+                {t('cardLostItemsTitle')}
               </h2>
               <span className="text-sm font-medium text-[#2B2A28]/80">
-                Local room beacon finder
+                {t('cardLostItemsSubtitle')}
               </span>
             </div>
           </div>
@@ -122,7 +125,7 @@ export const CardLostItems: React.FC<CardLostItemsProps> = ({
             aria-label="Ask assistant to locate an item using voice"
           >
             <Mic className="w-4 h-4" />
-            <span>Ask Voice</span>
+            <span>{t('locateItem')}</span>
           </button>
         </div>
 

@@ -35,7 +35,7 @@ const samplePhotos: FamilyPhoto[] = [
 
 export const CardFamilyNews: React.FC<CardFamilyNewsProps> = ({ onShowToast }) => {
   const [isModalOpen, setIsModalOpen] = useState(false);
-  const [selectedPhoto, setSelectedPhoto] = useState<FamilyPhoto>(samplePhotos[0]);
+  const [selectedPhoto, setSelectedPhoto] = useState<FamilyPhoto | null>(samplePhotos[0] || null);
 
   const handleSendHeart = () => {
     onShowToast("Heart message sent to Sarah: 'Nana loved the photos!' (Simulated)");
@@ -123,49 +123,55 @@ export const CardFamilyNews: React.FC<CardFamilyNewsProps> = ({ onShowToast }) =
             </div>
 
             {/* Photo Preview */}
-            <div className="mt-5 space-y-4">
-              <div className="relative rounded-2xl overflow-hidden border-2 border-[#EAE1D0] bg-black/5 aspect-video">
-                <img
-                  src={selectedPhoto.imageUrl}
-                  alt={selectedPhoto.title}
-                  className="w-full h-full object-cover"
-                  referrerPolicy="no-referrer"
-                />
-              </div>
-
-              <div className="bg-white p-4 rounded-xl border border-[#EAE1D0]">
-                <div className="flex items-center justify-between">
-                  <h4 className="font-serif text-2xl font-bold text-[#2B2A28]">
-                    {selectedPhoto.title}
-                  </h4>
-                  <span className="text-sm font-semibold text-[#D9714B]">
-                    {selectedPhoto.timeAgo}
-                  </span>
+            {selectedPhoto ? (
+              <div className="mt-5 space-y-4">
+                <div className="relative rounded-2xl overflow-hidden border-2 border-[#EAE1D0] bg-black/5 aspect-video">
+                  <img
+                    src={selectedPhoto.imageUrl}
+                    alt={selectedPhoto.title}
+                    className="w-full h-full object-cover"
+                    referrerPolicy="no-referrer"
+                  />
                 </div>
-                <p className="text-lg text-[#2B2A28] mt-2">
-                  {selectedPhoto.caption}
-                </p>
-              </div>
 
-              {/* Photo selector thumbnails */}
-              <div className="grid grid-cols-3 gap-3">
-                {samplePhotos.map((photo) => (
-                  <button
-                    key={photo.id}
-                    type="button"
-                    onClick={() => setSelectedPhoto(photo)}
-                    className={`min-h-[56px] p-2 rounded-xl border-2 text-left transition-all ${
-                      selectedPhoto.id === photo.id
-                        ? 'border-[#2E5D57] bg-[#2E5D57]/10 font-bold'
-                        : 'border-[#EAE1D0] bg-white'
-                    }`}
-                  >
-                    <p className="text-base text-[#2B2A28] truncate">{photo.title}</p>
-                    <span className="text-xs text-[#2B2A28]/70 block">{photo.sender}</span>
-                  </button>
-                ))}
+                <div className="bg-white p-4 rounded-xl border border-[#EAE1D0]">
+                  <div className="flex items-center justify-between">
+                    <h4 className="font-serif text-2xl font-bold text-[#2B2A28]">
+                      {selectedPhoto.title}
+                    </h4>
+                    <span className="text-sm font-semibold text-[#D9714B]">
+                      {selectedPhoto.timeAgo}
+                    </span>
+                  </div>
+                  <p className="text-lg text-[#2B2A28] mt-2">
+                    {selectedPhoto.caption}
+                  </p>
+                </div>
+
+                {/* Photo selector thumbnails */}
+                <div className="grid grid-cols-3 gap-3">
+                  {samplePhotos.map((photo) => (
+                    <button
+                      key={photo.id}
+                      type="button"
+                      onClick={() => setSelectedPhoto(photo)}
+                      className={`min-h-[56px] p-2 rounded-xl border-2 text-left transition-all ${
+                        selectedPhoto.id === photo.id
+                          ? 'border-[#2E5D57] bg-[#2E5D57]/10 font-bold'
+                          : 'border-[#EAE1D0] bg-white'
+                      }`}
+                    >
+                      <p className="text-base text-[#2B2A28] truncate">{photo.title}</p>
+                      <span className="text-xs text-[#2B2A28]/70 block">{photo.sender}</span>
+                    </button>
+                  ))}
+                </div>
               </div>
-            </div>
+            ) : (
+              <div className="py-12 text-center text-sm text-[#2B2A28]/70">
+                No family photos uploaded yet.
+              </div>
+            )}
 
             {/* Bottom Actions */}
             <div className="pt-6 mt-6 border-t-2 border-[#EAE1D0] flex flex-col sm:flex-row gap-3 items-center justify-between">
