@@ -1,5 +1,5 @@
 import React, { useState } from 'react';
-import { Heart, Image as ImageIcon, X, MessageCircleHeart } from 'lucide-react';
+import { Heart, ImageIcon, X, MessageCircleHeart } from './Icons';
 import { FamilyPhoto } from '../types';
 
 interface CardFamilyNewsProps {

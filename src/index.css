@@ -30,3 +30,49 @@ button:focus-visible, a:focus-visible, input:focus-visible {
   outline: 3px solid #2E5D57;
   outline-offset: 3px;
 }
+
+/* Accessibility Modes */
+.large-text-mode {
+  font-size: 22px !important;
+}
+
+.large-text-mode h1 {
+  font-size: 2.75rem !important;
+}
+
+.large-text-mode h2 {
+  font-size: 2rem !important;
+}
+
+.large-text-mode h3 {
+  font-size: 1.5rem !important;
+}
+
+.large-text-mode p,
+.large-text-mode span,
+.large-text-mode button {
+  font-size: 1.15em !important;
+}
+
+.high-contrast-mode {
+  color: #000000 !important;
+}
+
+.high-contrast-mode article,
+.high-contrast-mode section,
+.high-contrast-mode div[role="dialog"],
+.high-contrast-mode button {
+  border-color: #1A3632 !important;
+  border-width: 3px !important;
+}
+
+.high-contrast-mode p,
+.high-contrast-mode span,
+.high-contrast-mode h1,
+.high-contrast-mode h2,
+.high-contrast-mode h3,
+.high-contrast-mode h4 {
+  color: #000000 !important;
+  text-shadow: none !important;
+}
+

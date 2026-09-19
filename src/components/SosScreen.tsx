@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { PhoneCall, XCircle, AlertTriangle, ShieldCheck, HeartPulse } from 'lucide-react';
+import { PhoneCall, XCircle, AlertTriangle, ShieldCheck, HeartPulse, ArrowLeft } from './Icons';
 
 /* =========================================================================
    NOTE: UI SIMULATION ONLY
@@ -44,17 +44,17 @@ export const SosScreen: React.FC<SosScreenProps> = ({ onCancel, onCallPlaced }) 
       role="alertdialog"
       aria-labelledby="sos-status-heading"
       aria-describedby="sos-status-desc"
-      className="flex-1 flex flex-col items-center justify-center max-w-3xl mx-auto w-full px-4 sm:px-8 py-8"
+      className="flex-1 flex flex-col items-center justify-center max-w-3xl mx-auto w-full px-4 sm:px-8 py-6 sm:py-10"
     >
       {/* UI SIMULATION DISCLAIMER BADGE */}
-      <div className="mb-4 inline-flex items-center gap-2 bg-[#C2401F]/10 border-2 border-[#C2401F]/30 px-4 py-1.5 rounded-full text-[#C2401F] text-sm font-bold">
+      <div className="mb-4 inline-flex items-center gap-2 bg-[#C2401F]/10 border-2 border-[#C2401F]/30 px-4 py-1.5 rounded-full text-[#C2401F] text-sm font-bold text-center">
         <AlertTriangle className="w-4 h-4 shrink-0" aria-hidden="true" />
-        <span>PROTOTYPE SIMULATION ONLY — No real telephony call is placed</span>
+        <span>PROTOTYPE SIMULATION ONLY — No real emergency services called</span>
       </div>
 
       {!isDispatched ? (
         /* ACTIVE COUNTDOWN STATE */
-        <div className="w-full bg-white border-4 border-[#C2401F] rounded-3xl p-6 sm:p-10 flex flex-col items-center text-center space-y-6">
+        <div className="w-full bg-white border-4 border-[#C2401F] rounded-3xl p-6 sm:p-10 flex flex-col items-center text-center space-y-6 shadow-xl">
           <div className="w-24 h-24 rounded-full bg-[#C2401F] text-white flex items-center justify-center animate-pulse">
             <PhoneCall className="w-12 h-12 stroke-[2.5]" aria-hidden="true" />
           </div>
@@ -64,7 +64,7 @@ export const SosScreen: React.FC<SosScreenProps> = ({ onCancel, onCallPlaced }) 
               id="sos-status-heading"
               className="font-serif text-3xl sm:text-4xl lg:text-5xl font-bold text-[#C2401F] tracking-tight"
             >
-              Calling Daughter Sarah &amp; Emergency Dispatch…
+              Calling Daughter Sarah &amp; Care Responders…
             </h2>
             <p id="sos-status-desc" className="text-xl sm:text-2xl text-[#2B2A28] mt-3 font-medium">
               Connecting in <span className="font-bold text-[#C2401F] text-3xl sm:text-4xl">{secondsLeft}</span> seconds
@@ -80,33 +80,34 @@ export const SosScreen: React.FC<SosScreenProps> = ({ onCancel, onCallPlaced }) 
             />
           </div>
 
-          <p className="text-lg text-[#2B2A28]/80 max-w-md">
-            If this was an accident or you feel fine, press the large cancel button below.
+          <p className="text-lg sm:text-xl text-[#2B2A28]/80 max-w-md">
+            If this was an accident or you feel fine, tap the large button below right now:
           </p>
 
-          {/* Prominent Cancel Button */}
-          <div className="pt-4 flex flex-col items-center w-full">
+          {/* PRIMARY PROMINENT CANCEL TAP TARGET */}
+          <div className="pt-2 flex flex-col items-center w-full max-w-md">
             <button
               type="button"
               id="btn-cancel-sos"
               onClick={onCancel}
-              className="w-full sm:w-auto min-h-[72px] px-10 py-4 rounded-2xl bg-white border-4 border-[#2E5D57] text-[#2E5D57] font-bold text-2xl active:scale-95 transition-transform flex items-center justify-center gap-3"
+              className="w-full min-h-[80px] px-8 py-4 rounded-2xl bg-[#2E5D57] hover:bg-[#234641] text-[#FBF7EF] font-bold text-2xl sm:text-3xl active:scale-95 transition-transform flex items-center justify-center gap-3.5 border-4 border-[#1E433E] shadow-xl"
               aria-label="Cancel emergency call - I am okay"
+              autoFocus
             >
-              <XCircle className="w-8 h-8 stroke-[2.5]" aria-hidden="true" />
+              <XCircle className="w-9 h-9 stroke-[2.75] shrink-0" aria-hidden="true" />
               <span>Cancel Call — I&apos;m Okay</span>
             </button>
-            <p className="text-base font-semibold text-[#2B2A28]/70 mt-2">
-              or say &apos;cancel emergency&apos;
-            </p>
+            <span className="text-sm font-semibold text-[#2B2A28]/70 mt-2">
+              (Voice cancel also available: say &apos;cancel emergency&apos;)
+            </span>
           </div>
 
           {/* Immediate test trigger button */}
-          <div className="pt-2">
+          <div className="pt-1">
             <button
               type="button"
               onClick={handleImmediateTrigger}
-              className="text-sm font-semibold text-[#2E5D57] underline hover:text-[#D9714B]"
+              className="text-xs sm:text-sm font-semibold text-[#2E5D57] underline hover:text-[#D9714B]"
             >
               (Test now: Skip 10s countdown)
             </button>
@@ -114,7 +115,7 @@ export const SosScreen: React.FC<SosScreenProps> = ({ onCancel, onCallPlaced }) 
         </div>
       ) : (
         /* DISPATCHED CONFIRMATION STATE */
-        <div className="w-full bg-[#FBF7EF] border-4 border-[#2E5D57] rounded-3xl p-6 sm:p-10 flex flex-col items-center text-center space-y-6">
+        <div className="w-full bg-[#FBF7EF] border-4 border-[#2E5D57] rounded-3xl p-6 sm:p-10 flex flex-col items-center text-center space-y-6 shadow-xl">
           <div className="w-24 h-24 rounded-full bg-[#2E5D57] text-white flex items-center justify-center">
             <ShieldCheck className="w-14 h-14 stroke-[2.5]" aria-hidden="true" />
           </div>
@@ -137,31 +138,24 @@ export const SosScreen: React.FC<SosScreenProps> = ({ onCancel, onCallPlaced }) 
               <span>Safety Advice:</span>
             </div>
             <p className="text-lg text-[#2B2A28]">
-              • Please stay seated in a comfortable chair.
-            </p>
-            <p className="text-lg text-[#2B2A28]">
-              • Keep your front door clear; responders have keycode access.
-            </p>
-            <p className="text-lg text-[#2B2A28]">
-              • ElderVoice speaker is listening if you need to speak.
+              • Please stay seated in a comfortable chair.<br />
+              • Keep your tablet nearby. Sarah will ring in momentarily.<br />
+              • The front door smart lock has unlocked for first responders.
             </p>
           </div>
 
-          <div className="pt-4 flex flex-col items-center w-full">
-            <button
-              type="button"
-              id="btn-dismiss-sos-dispatched"
-              onClick={onCancel}
-              className="w-full sm:w-auto min-h-[64px] px-10 py-3.5 rounded-2xl bg-[#2E5D57] text-[#FBF7EF] font-bold text-2xl active:scale-95 transition-transform"
-            >
-              I Am Safe Now · Return Home
-            </button>
-            <p className="text-sm font-medium text-[#2B2A28]/70 mt-1.5">
-              or say &apos;I am safe&apos;
-            </p>
-          </div>
+          <button
+            type="button"
+            onClick={onCancel}
+            className="min-h-[64px] px-8 py-3.5 rounded-2xl bg-white border-3 border-[#2E5D57] text-[#2E5D57] font-bold text-xl flex items-center gap-2.5 active:scale-95 transition-transform hover:bg-[#2E5D57]/10"
+          >
+            <ArrowLeft className="w-6 h-6" />
+            <span>Return to Dashboard (False Alarm)</span>
+          </button>
         </div>
       )}
     </div>
   );
 };
+
+export default SosScreen;

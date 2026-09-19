@@ -3,18 +3,25 @@
  * SPDX-License-Identifier: Apache-2.0
  */
 
-import React, { useState, useEffect, useCallback } from 'react';
-import { ScreenView } from './types';
+import React, { useState, useEffect, useCallback, Suspense, lazy } from 'react';
+import { ScreenView, AccessibilitySettings } from './types';
 import { Header } from './components/Header';
 import { HomeDashboard } from './components/HomeDashboard';
-import { ListeningScreen } from './components/ListeningScreen';
-import { SosScreen } from './components/SosScreen';
 import { SimulationToast } from './components/SimulationToast';
+import { AccessibilityPanel } from './components/AccessibilityPanel';
+
+const ListeningScreen = lazy(() => import('./components/ListeningScreen'));
+const SosScreen = lazy(() => import('./components/SosScreen'));
 
 export default function App() {
   const [currentScreen, setCurrentScreen] = useState<ScreenView>('home');
   const [activeVoicePrompt, setActiveVoicePrompt] = useState<string | undefined>(undefined);
   const [toastMessage, setToastMessage] = useState<string | null>(null);
+  const [isA11yOpen, setIsA11yOpen] = useState(false);
+  const [a11ySettings, setA11ySettings] = useState<AccessibilitySettings>({
+    largeText: false,
+    highContrast: false,
+  });
 
   const showToast = useCallback((msg: string) => {
     setToastMessage(msg);
@@ -34,11 +41,23 @@ export default function App() {
     setActiveVoicePrompt(undefined);
   };
 
-  // Keyboard shortcut support for accessibility and testing (e.g. Escape to return home)
+  const handleUpdateA11y = (newSettings: Partial<AccessibilitySettings>) => {
+    setA11ySettings((prev) => ({ ...prev, ...newSettings }));
+    if (newSettings.largeText !== undefined) {
+      showToast(`Large text mode ${newSettings.largeText ? 'enabled' : 'disabled'}.`);
+    }
+    if (newSettings.highContrast !== undefined) {
+      showToast(`High-contrast mode ${newSettings.highContrast ? 'enabled' : 'disabled'}.`);
+    }
+  };
+
+  // Keyboard shortcut support for accessibility and testing (Escape to return home)
   useEffect(() => {
     const handleKeyDown = (e: KeyboardEvent) => {
       if (e.key === 'Escape') {
-        if (currentScreen !== 'home') {
+        if (isA11yOpen) {
+          setIsA11yOpen(false);
+        } else if (currentScreen !== 'home') {
           handleReturnHome();
         }
       }
@@ -46,15 +65,21 @@ export default function App() {
 
     window.addEventListener('keydown', handleKeyDown);
     return () => window.removeEventListener('keydown', handleKeyDown);
-  }, [currentScreen]);
+  }, [currentScreen, isA11yOpen]);
 
   return (
-    <div className="min-h-screen bg-[#FBF7EF] text-[#2B2A28] flex flex-col font-sans select-none antialiased">
-      {/* Top Header - Always visible with Wordmark, Clock, and Red SOS Button */}
+    <div
+      className={`min-h-screen bg-[#FBF7EF] text-[#2B2A28] flex flex-col font-sans select-none antialiased ${
+        a11ySettings.largeText ? 'large-text-mode' : ''
+      } ${a11ySettings.highContrast ? 'high-contrast-mode' : ''}`}
+    >
+      {/* Top Header - Always visible with Wordmark, Clock, PWA install, View Settings, and SOS Button */}
       <Header
         onSosClick={handleTriggerSos}
         onHomeClick={handleReturnHome}
+        onOpenAccessibility={() => setIsA11yOpen(true)}
         isSosActive={currentScreen === 'sos'}
+        onShowToast={showToast}
       />
 
       {/* Screen Views - Smooth client-side switching under 300ms */}
@@ -63,27 +88,45 @@ export default function App() {
           <HomeDashboard
             onStartListening={handleStartListening}
             onShowToast={showToast}
+            onSosClick={handleTriggerSos}
+            isSosActive={false}
           />
         )}
 
-        {currentScreen === 'listening' && (
-          <ListeningScreen
-            initialTranscript={activeVoicePrompt}
-            onClose={handleReturnHome}
-          />
-        )}
+        <Suspense
+          fallback={
+            <div className="flex-1 flex items-center justify-center">
+              <div className="w-10 h-10 border-4 border-[#2E5D57] border-t-transparent rounded-full animate-spin" />
+            </div>
+          }
+        >
+          {currentScreen === 'listening' && (
+            <ListeningScreen
+              initialTranscript={activeVoicePrompt}
+              onClose={handleReturnHome}
+            />
+          )}
 
-        {currentScreen === 'sos' && (
-          <SosScreen
-            onCancel={handleReturnHome}
-            onCallPlaced={() => {
-              showToast("Emergency alert simulated: Dispatch & Sarah have been notified.");
-            }}
-          />
-        )}
+          {currentScreen === 'sos' && (
+            <SosScreen
+              onCancel={handleReturnHome}
+              onCallPlaced={() => {
+                showToast("Emergency alert simulated: Dispatch & Sarah have been notified.");
+              }}
+            />
+          )}
+        </Suspense>
       </div>
 
-      {/* Simulation Feedback Toast */}
+      {/* Accessibility & View Preferences Panel */}
+      <AccessibilityPanel
+        isOpen={isA11yOpen}
+        onClose={() => setIsA11yOpen(false)}
+        settings={a11ySettings}
+        onUpdateSettings={handleUpdateA11y}
+      />
+
+      {/* Simulation Feedback Toast (also provides visual cue for alarms/chimes) */}
       {toastMessage && (
         <SimulationToast
           message={toastMessage}

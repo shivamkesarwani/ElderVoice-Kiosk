@@ -1,5 +1,5 @@
 import React, { useEffect } from 'react';
-import { CheckCircle, Info, X } from 'lucide-react';
+import { CheckCircle, X } from './Icons';
 
 interface SimulationToastProps {
   message: string;

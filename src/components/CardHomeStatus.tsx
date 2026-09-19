@@ -1,5 +1,5 @@
 import React, { useState } from 'react';
-import { Home, ShieldCheck, X, Check, Lock, Thermometer, Sun } from 'lucide-react';
+import { Home, ShieldCheck, X, Check, Lock, Thermometer, Sun } from './Icons';
 
 interface CardHomeStatusProps {
   onShowToast: (msg: string) => void;

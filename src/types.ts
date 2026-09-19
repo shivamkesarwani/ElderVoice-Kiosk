@@ -40,3 +40,34 @@ export interface VoiceExchange {
   timestamp: string;
   source: 'gemini' | 'fallback';
 }
+
+export interface MedicineSchedule {
+  time: string;
+  taken: boolean;
+}
+
+export interface MedicineItem {
+  id: string;
+  name: string;
+  dosage: string;
+  photoUrl: string;
+  schedules: MedicineSchedule[];
+  // Nudge stage: 'none' | 'gentle' | 'urgent' | 'caregiver_notified'
+  nudgeStage?: 'none' | 'gentle' | 'urgent' | 'caregiver_notified';
+  caregiverName?: string;
+}
+
+export interface TrackedItem {
+  id: string;
+  name: string;
+  room: string;
+  relativeTime: string;
+  category: 'reading' | 'keys' | 'remote' | 'medication' | 'mobility';
+  iconName: 'glasses' | 'key' | 'tv' | 'pill' | 'cane';
+}
+
+export interface AccessibilitySettings {
+  largeText: boolean;
+  highContrast: boolean;
+}
+

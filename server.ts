@@ -36,18 +36,41 @@ async function startServer() {
   // Voice reply endpoint using Gemini API
   app.post("/api/voice-reply", async (req, res) => {
     try {
-      const { transcript } = req.body;
+      const { transcript, itemQuery } = req.body;
       const prompt = (transcript || "Hello ElderVoice, what is my update for today?").trim();
+      const lower = prompt.toLowerCase();
+
+      // Guard: strictly block financial features for senior user safety
+      if (
+        lower.includes("bank") ||
+        lower.includes("credit card") ||
+        lower.includes("debit") ||
+        lower.includes("payment") ||
+        lower.includes("transfer money") ||
+        lower.includes("wallet") ||
+        lower.includes("upi") ||
+        lower.includes("pin number")
+      ) {
+        return res.json({
+          reply: "For your financial safety and protection, financial and banking features are not available on this kiosk. Please consult Sarah or your local bank branch directly.",
+          source: "safety_guard",
+        });
+      }
 
       const ai = getGeminiClient();
       if (ai) {
         try {
           const response = await ai.models.generateContent({
             model: "gemini-3.8-flash",
-            contents: prompt,
+            contents: `User query: "${prompt}"\nContext info: Local household room-level items currently tracked:
+- Reading Glasses: Kitchen island, 10 minutes ago
+- House Keys: Entryway table tray, 25 minutes ago
+- TV Remote: Living room armchair pocket, 45 minutes ago
+- Daily Pill Box: Kitchen counter next to kettle, 2 hours ago
+- Walking Cane: Front porch coat rack, 3 hours ago`,
             config: {
               systemInstruction:
-                "You are ElderVoice, a compassionate, warm, patient smart home and wellbeing voice assistant speaking to a senior citizen named Eleanor on her home-mounted tablet kiosk. Provide a warm, clear, plain-language spoken reply in 1 to 2 short sentences. Speak gently, respectfully, and reassuringly. Never use markdown formatting, asterisks, bullet points, or complex technical jargon. Ensure the text is natural to be read or spoken aloud.",
+                "You are ElderVoice, a compassionate, warm, patient smart home and wellbeing voice assistant speaking to a senior citizen named Eleanor on her home-mounted tablet kiosk. If she asks about a misplaced item, give a reassuring room-level answer based on the local tracked items. Provide a warm, clear, plain-language spoken reply in 1 to 2 short sentences. Speak gently, respectfully, and reassuringly. Never use markdown formatting, asterisks, bullet points, or complex technical jargon. Ensure the text is natural to be read or spoken aloud.",
             },
           });
 
@@ -61,13 +84,24 @@ async function startServer() {
       }
 
       // Intelligent warm contextual fallbacks for prototype resilience
-      const lower = prompt.toLowerCase();
       let fallbackReply = "I am right here with you, Eleanor. All your morning reminders are on track, and your home is safe and comfortable.";
 
-      if (lower.includes("weather") || lower.includes("outside") || lower.includes("temperature") || lower.includes("rain")) {
+      if (lower.includes("glass") || lower.includes("spectacle") || lower.includes("reading")) {
+        fallbackReply = "Your reading glasses were last seen in the kitchen on the breakfast island, about 10 minutes ago.";
+      } else if (lower.includes("key")) {
+        fallbackReply = "Your house keys were last seen in the entryway table tray, about 25 minutes ago.";
+      } else if (lower.includes("remote") || lower.includes("television") || lower.includes("tv")) {
+        fallbackReply = "Your TV remote was last seen tucked beside your living room armchair, about 45 minutes ago.";
+      } else if (lower.includes("pill box") || lower.includes("organizer") || lower.includes("medicine box")) {
+        fallbackReply = "Your daily pill box was last seen on the kitchen counter next to the kettle, about 2 hours ago.";
+      } else if (lower.includes("cane") || lower.includes("walking stick")) {
+        fallbackReply = "Your walking cane was last seen on the front porch coat rack, about 3 hours ago.";
+      } else if (lower.includes("find") || lower.includes("where") || lower.includes("lost")) {
+        fallbackReply = "I can help locate your glasses in the kitchen, your keys in the entryway, or your TV remote by the armchair.";
+      } else if (lower.includes("weather") || lower.includes("outside") || lower.includes("temperature") || lower.includes("rain")) {
         fallbackReply = "It is currently 72 degrees and sunny with a light breeze. A lovely day to sit on the porch.";
       } else if (lower.includes("pill") || lower.includes("medication") || lower.includes("medicine") || lower.includes("prescription")) {
-        fallbackReply = "Your morning heart medication was taken on time. Your next reminder will be at 7:00 PM for your evening vitamins.";
+        fallbackReply = "Your 8:00 AM Lisinopril medication is scheduled. You can mark it as taken right on your medicine card.";
       } else if (lower.includes("lunch") || lower.includes("dinner") || lower.includes("meal") || lower.includes("food") || lower.includes("breakfast")) {
         fallbackReply = "For lunch today, roasted butternut squash soup with whole grain bread is planned. It's ready whenever you feel hungry.";
       } else if (lower.includes("sarah") || lower.includes("daughter") || lower.includes("family") || lower.includes("photo") || lower.includes("grandkids")) {

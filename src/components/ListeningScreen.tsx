@@ -1,5 +1,5 @@
 import React, { useState, useEffect, useRef } from 'react';
-import { Mic, Volume2, VolumeX, ArrowLeft, RefreshCw, Sparkles, Send } from 'lucide-react';
+import { Mic, Volume2, VolumeX, ArrowLeft, RefreshCw, Sparkles, Send } from './Icons';
 import { VoiceExchange } from '../types';
 
 interface ListeningScreenProps {
@@ -10,9 +10,10 @@ interface ListeningScreenProps {
 const sampleTranscripts = [
   "What is the weather outside today?",
   "Did I take my morning pills?",
+  "Where are my reading glasses?",
   "What's for lunch today?",
   "Is the front door securely locked?",
-  "How is my daughter Sarah doing?",
+  "Where did I leave my keys?",
 ];
 
 export const ListeningScreen: React.FC<ListeningScreenProps> = ({
@@ -47,33 +48,20 @@ export const ListeningScreen: React.FC<ListeningScreenProps> = ({
     };
   }, [initialTranscript]);
 
-  // Request voice reply from the server (using Gemini API)
+  // Request voice reply from the server (using Gemini API lazily imported)
   const startProcessing = async (text: string) => {
     if (timeoutRef.current) clearTimeout(timeoutRef.current);
     setPhase('thinking');
 
     try {
-      const res = await fetch('/api/voice-reply', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ transcript: text }),
-      });
-
-      const data = await res.json();
-      const replyText = data.reply || "I am right here with you, Eleanor. Everything is calm and safe.";
-
-      const newExchange: VoiceExchange = {
-        transcript: text,
-        reply: replyText,
-        timestamp: new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }),
-        source: data.source || 'gemini',
-      };
-
+      const { requestVoiceReply } = await import('../services/voiceService');
+      const newExchange = await requestVoiceReply(text);
       setExchange(newExchange);
       setPhase('responded');
 
       // Accessibility: speak aloud the response if speech synthesis is supported
-      speakAloud(replyText);
+      // Low hearing mandate: Full text is simultaneously visible on-screen below!
+      speakAloud(newExchange.reply);
     } catch (err) {
       console.error('Failed to get voice reply:', err);
       const fallbackExchange: VoiceExchange = {
@@ -92,7 +80,7 @@ export const ListeningScreen: React.FC<ListeningScreenProps> = ({
     window.speechSynthesis.cancel();
 
     const utterance = new SpeechSynthesisUtterance(textToSpeak);
-    utterance.rate = 0.9; // Slightly slower, calm cadence for seniors
+    utterance.rate = 0.88; // Gentle, clear tempo for seniors
     utterance.pitch = 1.0;
 
     utterance.onstart = () => setIsSpeaking(true);
@@ -128,7 +116,6 @@ export const ListeningScreen: React.FC<ListeningScreenProps> = ({
     setExchange(null);
     setTranscript('');
     setPhase('listening');
-    // Start listening again
     timeoutRef.current = setTimeout(() => {
       const nextQuery = sampleTranscripts[Math.floor(Math.random() * sampleTranscripts.length)];
       setTranscript(nextQuery);
@@ -140,50 +127,72 @@ export const ListeningScreen: React.FC<ListeningScreenProps> = ({
     <section
       id="kiosk-listening-screen"
       role="region"
-      aria-label="Voice interaction"
-      className="flex-1 flex flex-col items-center justify-between max-w-4xl mx-auto w-full px-4 sm:px-8 py-8"
+      aria-label="Voice and typed interaction"
+      className="flex-1 flex flex-col items-center justify-between max-w-4xl mx-auto w-full px-4 sm:px-8 py-6 sm:py-8"
     >
-      {/* PHASE 1: LISTENING (CONCENTRIC SOFT RINGS PULSE) */}
+      {/* PHASE 1: LISTENING WITH FIRST-CLASS TYPED INPUT */}
       {phase === 'listening' && (
-        <div className="flex-1 flex flex-col items-center justify-center text-center my-auto w-full">
+        <div className="flex-1 flex flex-col items-center justify-center text-center my-auto w-full max-w-2xl">
           {/* Concentric soft rings with pulse animation */}
-          <div className="relative flex items-center justify-center my-8">
-            {/* Outer soft ring */}
+          <div className="relative flex items-center justify-center my-4 sm:my-6">
             <div
-              className="absolute w-52 h-52 sm:w-64 sm:h-64 rounded-full bg-[#2E5D57]/10 animate-ping opacity-60 motion-reduce:animate-none"
+              className="absolute w-44 h-44 sm:w-56 sm:h-56 rounded-full bg-[#2E5D57]/10 animate-ping opacity-60 motion-reduce:animate-none"
               aria-hidden="true"
             />
-            {/* Inner soft ring */}
             <div
-              className="relative w-40 h-40 sm:w-48 sm:h-48 rounded-full bg-[#2E5D57]/20 flex items-center justify-center border-2 border-[#2E5D57]/30"
+              className="relative w-36 h-36 sm:w-44 sm:h-44 rounded-full bg-[#2E5D57]/20 flex items-center justify-center border-2 border-[#2E5D57]/30"
               aria-hidden="true"
             >
-              {/* Solid center circle with ivory mic */}
-              <div className="w-24 h-24 sm:w-28 sm:h-28 rounded-full bg-[#2E5D57] flex items-center justify-center shadow-none">
-                <Mic className="w-12 h-12 text-[#FBF7EF] stroke-[2.5]" aria-hidden="true" />
+              <div className="w-22 h-22 sm:w-26 sm:h-26 rounded-full bg-[#2E5D57] flex items-center justify-center">
+                <Mic className="w-10 h-10 sm:w-12 sm:h-12 text-[#FBF7EF] stroke-[2.5]" aria-hidden="true" />
               </div>
             </div>
           </div>
 
-          <h2 className="font-serif text-4xl sm:text-5xl font-bold text-[#2B2A28] mt-4 tracking-tight">
-            Listening…
+          <h2 className="font-serif text-3xl sm:text-4xl lg:text-5xl font-bold text-[#2B2A28] tracking-tight">
+            Listening for your voice…
           </h2>
-          <p className="text-xl sm:text-2xl text-[#2B2A28]/85 mt-2 font-medium max-w-lg">
-            Say &ldquo;Hey ElderVoice&rdquo; or press the microphone
+          <p className="text-lg sm:text-xl text-[#2B2A28]/85 mt-1.5 font-medium">
+            Speak naturally or type your question below
           </p>
 
-          {/* Quick selection chips for simulation ease */}
-          <div className="mt-8 max-w-xl w-full">
-            <p className="text-base font-semibold text-[#2B2A28]/70 mb-3">
-              Or tap a sample query to speak:
+          {/* EQUAL FIRST-CLASS TYPED INPUT ALTERNATIVE (Low hearing / quiet environment support) */}
+          <form
+            onSubmit={handleCustomSubmit}
+            className="w-full mt-6 p-4 rounded-2xl bg-white border-2 border-[#2E5D57] shadow-sm flex flex-col sm:flex-row gap-2.5"
+            aria-label="Typed query input"
+          >
+            <input
+              type="text"
+              id="typed-query-input-main"
+              value={customInput}
+              onChange={(e) => setCustomInput(e.target.value)}
+              placeholder="Type any question (e.g. 'Where are my glasses?')"
+              className="flex-1 min-h-[52px] px-4 rounded-xl border border-[#EAE1D0] bg-[#FBF7EF] text-[#2B2A28] text-base sm:text-lg focus:border-[#2E5D57] focus:outline-none"
+              aria-label="Type your question as an alternative to speaking"
+            />
+            <button
+              type="submit"
+              className="min-h-[52px] px-6 rounded-xl bg-[#2E5D57] hover:bg-[#234641] text-[#FBF7EF] font-bold text-base sm:text-lg flex items-center justify-center gap-2 active:scale-95 transition-transform shrink-0"
+              aria-label="Send typed question"
+            >
+              <Send className="w-5 h-5" />
+              <span>Send</span>
+            </button>
+          </form>
+
+          {/* Quick selection chips for convenient tap-to-ask */}
+          <div className="mt-6 w-full">
+            <p className="text-xs sm:text-sm font-bold uppercase tracking-wider text-[#2B2A28]/70 mb-2.5">
+              Or tap a quick question:
             </p>
-            <div className="flex flex-wrap justify-center gap-2.5">
+            <div className="flex flex-wrap justify-center gap-2">
               {sampleTranscripts.map((sample, idx) => (
                 <button
                   key={idx}
                   type="button"
                   onClick={() => handleSelectSample(sample)}
-                  className="min-h-[48px] px-4 py-2.5 bg-white border-2 border-[#EAE1D0] rounded-2xl text-[#2B2A28] font-medium text-base hover:border-[#2E5D57] active:scale-95 transition-transform"
+                  className="min-h-[44px] px-3.5 py-2 bg-white border border-[#EAE1D0] rounded-xl text-[#2B2A28] font-medium text-sm sm:text-base hover:border-[#2E5D57] active:scale-95 transition-transform"
                 >
                   &ldquo;{sample}&rdquo;
                 </button>
@@ -208,28 +217,28 @@ export const ListeningScreen: React.FC<ListeningScreenProps> = ({
         </div>
       )}
 
-      {/* PHASE 3: RESPONSE SCREEN (GEMINI SPOKEN REPLY) */}
+      {/* PHASE 3: RESPONSE SCREEN (SIMULTANEOUS FULL TEXT + SPEECH) */}
       {phase === 'responded' && exchange && (
-        <div className="flex-1 flex flex-col items-center justify-center w-full my-auto">
+        <div className="flex-1 flex flex-col items-center justify-center w-full my-auto max-w-3xl">
           {/* Card containing both user recognized text & AI response */}
-          <div className="w-full bg-[#FBF7EF] border-3 border-[#2E5D57] rounded-3xl p-6 sm:p-8 space-y-6">
-            {/* Senior's Recognized Voice Query */}
+          <div className="w-full bg-[#FBF7EF] border-3 border-[#2E5D57] rounded-3xl p-6 sm:p-8 space-y-6 shadow-md">
+            {/* Senior's Recognized / Typed Query */}
             <div className="bg-white p-5 rounded-2xl border-2 border-[#EAE1D0]">
-              <span className="text-sm font-bold uppercase tracking-wider text-[#2E5D57] block mb-1">
-                You asked:
+              <span className="text-xs sm:text-sm font-bold uppercase tracking-wider text-[#2E5D57] block mb-1">
+                Your question:
               </span>
               <p className="font-serif text-2xl sm:text-3xl font-bold text-[#2B2A28]">
                 &ldquo;{exchange.transcript}&rdquo;
               </p>
             </div>
 
-            {/* ElderVoice Spoken Reply */}
-            <div className="bg-[#2E5D57]/10 p-6 rounded-2xl border-2 border-[#2E5D57]/25 space-y-4">
+            {/* ElderVoice Spoken & Full Synchronized On-Screen Text Reply */}
+            <div className="bg-[#2E5D57]/10 p-6 rounded-2xl border-2 border-[#2E5D57]/30 space-y-4">
               <div className="flex items-center justify-between">
                 <div className="flex items-center gap-2.5">
                   <Sparkles className="w-6 h-6 text-[#D9714B]" aria-hidden="true" />
                   <span className="font-serif text-xl sm:text-2xl font-bold text-[#2E5D57]">
-                    ElderVoice:
+                    ElderVoice Response:
                   </span>
                 </div>
 
@@ -237,13 +246,13 @@ export const ListeningScreen: React.FC<ListeningScreenProps> = ({
                 <button
                   type="button"
                   onClick={() => (isSpeaking ? stopSpeaking() : speakAloud(exchange.reply))}
-                  className="min-h-[48px] px-4 py-2 rounded-xl bg-white border-2 border-[#2E5D57] text-[#2E5D57] font-bold text-base flex items-center gap-2"
-                  aria-label={isSpeaking ? 'Mute spoken reply' : 'Read aloud response'}
+                  className="min-h-[48px] px-4 py-2 rounded-xl bg-white border-2 border-[#2E5D57] text-[#2E5D57] font-bold text-sm sm:text-base flex items-center gap-2 active:scale-95 transition-transform"
+                  aria-label={isSpeaking ? 'Mute spoken reply' : 'Read aloud response again'}
                 >
                   {isSpeaking ? (
                     <>
                       <VolumeX className="w-5 h-5 text-[#C2401F]" />
-                      <span>Stop Voice</span>
+                      <span>Stop Audio</span>
                     </>
                   ) : (
                     <>
@@ -254,28 +263,29 @@ export const ListeningScreen: React.FC<ListeningScreenProps> = ({
                 </button>
               </div>
 
-              <p className="text-2xl sm:text-3xl text-[#2B2A28] leading-relaxed font-medium">
+              {/* MANDATORY FULL ON-SCREEN TEXT (Low Hearing Guarantee) */}
+              <p className="text-2xl sm:text-3xl text-[#2B2A28] leading-relaxed font-semibold">
                 {exchange.reply}
               </p>
 
-              <div className="flex items-center justify-between text-xs text-[#2B2A28]/70 pt-2 border-t border-[#2E5D57]/20">
-                <span>Natural conversational assistance</span>
-                <span>Generated via Gemini AI</span>
+              <div className="flex flex-wrap items-center justify-between gap-2 text-xs text-[#2B2A28]/70 pt-2 border-t border-[#2E5D57]/20">
+                <span>Full on-screen captions guaranteed</span>
+                <span>Powered by Gemini AI</span>
               </div>
             </div>
 
-            {/* Optional custom input for typing any test question */}
+            {/* Typed follow-up input */}
             <form onSubmit={handleCustomSubmit} className="flex gap-2 pt-2">
               <input
                 type="text"
                 value={customInput}
                 onChange={(e) => setCustomInput(e.target.value)}
-                placeholder="Or type a question to test (e.g. 'Can you call Sarah?')"
-                className="flex-1 min-h-[56px] px-4 rounded-xl border-2 border-[#EAE1D0] bg-white text-[#2B2A28] text-lg focus:border-[#2E5D57] focus:outline-none"
+                placeholder="Type another question (e.g. 'Where is my cane?')"
+                className="flex-1 min-h-[52px] px-4 rounded-xl border-2 border-[#EAE1D0] bg-white text-[#2B2A28] text-base sm:text-lg focus:border-[#2E5D57] focus:outline-none"
               />
               <button
                 type="submit"
-                className="min-h-[56px] px-6 rounded-xl bg-[#2E5D57] text-[#FBF7EF] font-bold text-lg flex items-center gap-2 shrink-0"
+                className="min-h-[52px] px-6 rounded-xl bg-[#2E5D57] text-[#FBF7EF] font-bold text-base sm:text-lg flex items-center gap-2 shrink-0 active:scale-95 transition-transform"
               >
                 <Send className="w-5 h-5" />
                 <span>Ask</span>
@@ -289,7 +299,7 @@ export const ListeningScreen: React.FC<ListeningScreenProps> = ({
               type="button"
               id="btn-ask-another-voice"
               onClick={handleAskAnother}
-              className="w-full sm:w-auto min-h-[60px] px-8 py-3.5 rounded-2xl bg-[#2E5D57] text-[#FBF7EF] font-bold text-xl flex items-center justify-center gap-3 border-2 border-[#234641] active:scale-95 transition-transform"
+              className="w-full sm:w-auto min-h-[60px] px-8 py-3.5 rounded-2xl bg-[#2E5D57] hover:bg-[#234641] text-[#FBF7EF] font-bold text-xl flex items-center justify-center gap-3 border-2 border-[#234641] active:scale-95 transition-transform shadow-sm"
             >
               <Mic className="w-6 h-6" />
               <span>Ask Another Question</span>
@@ -302,7 +312,7 @@ export const ListeningScreen: React.FC<ListeningScreenProps> = ({
                 stopSpeaking();
                 onClose();
               }}
-              className="w-full sm:w-auto min-h-[60px] px-8 py-3.5 rounded-2xl bg-white border-2 border-[#EAE1D0] text-[#2B2A28] font-bold text-xl flex items-center justify-center gap-2 active:scale-95 transition-transform"
+              className="w-full sm:w-auto min-h-[60px] px-8 py-3.5 rounded-2xl bg-white border-2 border-[#EAE1D0] hover:border-[#2E5D57] text-[#2B2A28] font-bold text-xl flex items-center justify-center gap-2 active:scale-95 transition-transform"
             >
               <ArrowLeft className="w-6 h-6" />
               <span>Return to Dashboard</span>
@@ -311,7 +321,7 @@ export const ListeningScreen: React.FC<ListeningScreenProps> = ({
         </div>
       )}
 
-      {/* Visible Cancel Button (always accessible at the bottom) */}
+      {/* Visible Cancel Button */}
       <div className="pt-6 w-full flex flex-col items-center">
         <button
           type="button"
@@ -325,10 +335,12 @@ export const ListeningScreen: React.FC<ListeningScreenProps> = ({
         >
           Cancel
         </button>
-        <p className="text-sm font-medium text-[#2B2A28]/70 mt-1.5">
-          or say &apos;cancel&apos; / &apos;stop&apos;
-        </p>
+        <span className="text-xs sm:text-sm font-medium text-[#2B2A28]/70 mt-1.5">
+          or say &apos;cancel&apos;
+        </span>
       </div>
     </section>
   );
 };
+
+export default ListeningScreen;

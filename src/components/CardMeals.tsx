@@ -1,5 +1,5 @@
 import React, { useState } from 'react';
-import { Utensils, X, Check, Droplets } from 'lucide-react';
+import { Utensils, X, Check, Droplets } from './Icons';
 import { MealItem } from '../types';
 
 interface CardMealsProps {

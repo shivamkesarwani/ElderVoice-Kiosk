@@ -1,0 +1,127 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 512 512" width="100%" height="100%">
+  <defs>
+    <linearGradient id="bgGrad" x1="0%" y1="0%" x2="100%" y2="100%">
+      <stop offset="0%" stop-color="#FFFFFF" />
+      <stop offset="100%" stop-color="#F8FAFC" />
+    </linearGradient>
+    <clipPath id="screenClip">
+      <rect x="142" y="122" width="186" height="138" rx="8" ry="8" />
+    </clipPath>
+  </defs>
+
+  <!-- Green dashed orbit connecting satellite badges -->
+  <path d="M 298 86 C 345 84 395 125 392 205 C 390 245 365 275 338 285" fill="none" stroke="#009A60" stroke-width="4.5" stroke-dasharray="8 6" stroke-linecap="round" />
+
+  <!-- SATELLITE BADGE 1: Home (Top Right) -->
+  <g transform="translate(352, 98)">
+    <circle cx="0" cy="0" r="26" fill="#009A60" />
+    <!-- White House Icon -->
+    <path d="M 0 -13 L -12 -2 L -8 -2 L -8 11 L 8 11 L 8 -2 L 12 -2 Z" fill="#FFFFFF" />
+    <!-- Door -->
+    <rect x="-3" y="2" width="6" height="9" fill="#009A60" rx="1" />
+  </g>
+
+  <!-- SATELLITE BADGE 2: Health / Heartbeat (Middle Right) -->
+  <g transform="translate(390, 168)">
+    <circle cx="0" cy="0" r="28" fill="#0098A6" />
+    <!-- Heart with ECG pulse -->
+    <path d="M 0 14 C -12 4 -16 -4 -16 -9 C -16 -14 -11 -18 -6 -18 C -2 -18 0 -15 0 -15 C 0 -15 2 -18 6 -18 C 11 -18 16 -14 16 -9 C 16 -4 12 4 0 14 Z" fill="#FFFFFF" />
+    <!-- Pulse Line in teal cutting through heart -->
+    <path d="M -11 -7 L -6 -7 L -3 -12 L 0 -2 L 3 -10 L 6 -7 L 11 -7" fill="none" stroke="#0098A6" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round" />
+  </g>
+
+  <!-- SATELLITE BADGE 3: Emergency Alarm Beacon (Bottom Right) -->
+  <g transform="translate(388, 246)">
+    <circle cx="0" cy="0" r="29" fill="#E8632B" />
+    <!-- Siren / Beacon Icon -->
+    <path d="M -9 8 L 9 8 L 8 0 C 8 -5 4 -9 0 -9 C -4 -9 -8 -5 -8 0 Z" fill="#FFFFFF" />
+    <rect x="-11" y="8" width="22" height="4" rx="1.5" fill="#FFFFFF" />
+    <!-- Radiating Light Rays -->
+    <line x1="0" y1="-14" x2="0" y2="-11" stroke="#FFFFFF" stroke-width="2.5" stroke-linecap="round" />
+    <line x1="-10" y1="-12" x2="-8" y2="-10" stroke="#FFFFFF" stroke-width="2.5" stroke-linecap="round" />
+    <line x1="10" y1="-12" x2="8" y2="-10" stroke="#FFFFFF" stroke-width="2.5" stroke-linecap="round" />
+  </g>
+
+  <!-- TABLET STAND (Easel wedge on the left) -->
+  <path d="M 120 114 L 148 114 L 148 274 L 118 274 Z" fill="#0D223B" />
+
+  <!-- TABLET CHASSIS -->
+  <rect x="124" y="108" width="222" height="170" rx="16" fill="#0F243E" />
+  
+  <!-- TABLET WHITE SCREEN -->
+  <rect x="138" y="120" width="194" height="144" rx="8" fill="#FFFFFF" />
+
+  <!-- TABLET HOME BUTTON BAR (Bottom Bezel) -->
+  <rect x="225" y="268" width="20" height="4" rx="2" fill="#FFFFFF" />
+
+  <!-- INSIDE TABLET SCREEN CONTENT -->
+  <g clip-path="url(#screenClip)">
+    <!-- Senior Grandmother Character -->
+    <!-- Torso / Cardigan -->
+    <path d="M 148 274 C 150 220 170 195 210 195 C 248 195 268 220 270 274 Z" fill="#D95A2B" />
+    <!-- Inner Blouse / Cream Top -->
+    <path d="M 195 210 Q 210 230 225 210 L 225 274 L 195 274 Z" fill="#FDFBF7" />
+
+    <!-- Neck -->
+    <rect x="202" y="180" width="16" height="18" rx="4" fill="#F7C5A8" />
+
+    <!-- Head / Face -->
+    <ellipse cx="210" cy="162" rx="27" ry="30" fill="#F7C5A8" />
+    <!-- Rosy Cheeks -->
+    <circle cx="194" cy="170" r="5" fill="#F3A683" opacity="0.6" />
+    <circle cx="226" cy="170" r="5" fill="#F3A683" opacity="0.6" />
+
+    <!-- Eyebrows -->
+    <path d="M 192 150 Q 198 147 203 150" fill="none" stroke="#7F8C8D" stroke-width="2" stroke-linecap="round" />
+    <path d="M 217 150 Q 222 147 228 150" fill="none" stroke="#7F8C8D" stroke-width="2" stroke-linecap="round" />
+
+    <!-- Smiling Eyes -->
+    <path d="M 194 157 Q 198 153 203 157" fill="none" stroke="#0F243E" stroke-width="2.5" stroke-linecap="round" />
+    <path d="M 217 157 Q 222 153 226 157" fill="none" stroke="#0F243E" stroke-width="2.5" stroke-linecap="round" />
+
+    <!-- Nose -->
+    <path d="M 209 162 Q 212 166 208 168" fill="none" stroke="#E29578" stroke-width="2" stroke-linecap="round" />
+
+    <!-- Gentle Warm Smile -->
+    <path d="M 202 174 Q 210 182 218 174" fill="none" stroke="#C0392B" stroke-width="2.5" stroke-linecap="round" />
+
+    <!-- Round Glasses -->
+    <circle cx="198" cy="157" r="11" fill="none" stroke="#0F243E" stroke-width="3" />
+    <circle cx="222" cy="157" r="11" fill="none" stroke="#0F243E" stroke-width="3" />
+    <line x1="209" y1="157" x2="211" y2="157" stroke="#0F243E" stroke-width="3" />
+
+    <!-- Styled Grey Hair -->
+    <path d="M 183 162 C 180 135 190 126 210 126 C 230 126 242 135 237 162 C 242 152 242 135 234 126 C 220 118 200 118 186 126 C 178 135 178 152 183 162 Z" fill="#B0BEC5" />
+    <!-- Hair bun / fluff on side -->
+    <circle cx="180" cy="154" r="11" fill="#B0BEC5" />
+    <circle cx="178" cy="164" r="9" fill="#90A4AE" />
+
+    <!-- Microphone on Screen -->
+    <g transform="translate(272, 178)">
+      <!-- Soundwaves radiating to right -->
+      <path d="M 12 -12 C 18 -6 18 6 12 12" fill="none" stroke="#2563EB" stroke-width="3.5" stroke-linecap="round" />
+      <path d="M 18 -18 C 28 -8 28 8 18 18" fill="none" stroke="#2563EB" stroke-width="3.5" stroke-linecap="round" />
+
+      <!-- Mic capsule -->
+      <rect x="-6" y="-12" width="12" height="18" rx="6" fill="#0F243E" />
+      <!-- Mic cradle/arc -->
+      <path d="M -9 -2 C -9 8 9 8 9 -2" fill="none" stroke="#0F243E" stroke-width="2.5" stroke-linecap="round" />
+      <!-- Mic stem and base -->
+      <line x1="0" y1="8" x2="0" y2="14" stroke="#0F243E" stroke-width="2.5" stroke-linecap="round" />
+      <line x1="-7" y1="14" x2="7" y2="14" stroke="#0F243E" stroke-width="2.5" stroke-linecap="round" />
+    </g>
+  </g>
+
+  <!-- LOGO WORDMARK BELOW TABLET -->
+  <!-- Top Line: ElderVoice -->
+  <g id="brand-text">
+    <text x="236" y="375" text-anchor="middle" font-family="'Newsreader', Georgia, serif" font-weight="900" font-size="56" letter-spacing="-0.5">
+      <tspan fill="#0F243E">Elder</tspan><tspan fill="#00865E">Voice</tspan>
+    </text>
+
+    <!-- Bottom Line: — Kiosk — -->
+    <line x1="108" y1="414" x2="188" y2="414" stroke="#00865E" stroke-width="4.5" stroke-linecap="round" />
+    <text x="248" y="423" text-anchor="middle" font-family="Verdana, sans-serif" font-weight="800" font-size="34" fill="#00865E" letter-spacing="4">Kiosk</text>
+    <line x1="332" y1="414" x2="412" y2="414" stroke="#00865E" stroke-width="4.5" stroke-linecap="round" />
+  </g>
+</svg>
