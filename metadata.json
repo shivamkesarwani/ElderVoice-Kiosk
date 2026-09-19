@@ -1,0 +1,6 @@
+{
+  "name": "ElderVoice Kiosk",
+  "description": "A voice-first smart home and wellbeing dashboard designed for senior citizens on a home-mounted tablet.",
+  "requestFramePermissions": ["microphone"],
+  "majorCapabilities": ["MAJOR_CAPABILITY_SERVER_SIDE_GEMINI_API"]
+}
