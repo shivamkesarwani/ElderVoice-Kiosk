@@ -1,0 +1,113 @@
+name: Deploy ElderVoice Kiosk to Google Cloud Run
+
+on:
+  push:
+    branches:
+      - main
+      - master
+  workflow_dispatch:
+    inputs:
+      service_name:
+        description: 'Cloud Run Service Name'
+        required: false
+        default: 'eldervoice-kiosk'
+      region:
+        description: 'Google Cloud Region'
+        required: false
+        default: 'us-central1'
+
+permissions:
+  contents: read
+  id-token: write # Required for Workload Identity Federation authentication
+
+env:
+  SERVICE_NAME: ${{ inputs.service_name || vars.GCP_SERVICE_NAME || 'eldervoice-kiosk' }}
+  REGION: ${{ inputs.region || vars.GCP_REGION || 'us-central1' }}
+  PROJECT_ID: ${{ secrets.GCP_PROJECT_ID || vars.GCP_PROJECT_ID }}
+
+jobs:
+  # -------------------------------------------------------------
+  # Job 1: Build & Validate
+  # -------------------------------------------------------------
+  build-and-test:
+    name: Build & Validate Applet
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: 20
+          cache: 'npm'
+
+      - name: Install dependencies
+        run: npm ci
+
+      - name: Typecheck and lint
+        run: npm run lint
+
+      - name: Build frontend and server bundles
+        run: npm run build
+
+  # -------------------------------------------------------------
+  # Job 2: Deploy to Google Cloud Run
+  # -------------------------------------------------------------
+  deploy:
+    name: Deploy to Cloud Run
+    needs: build-and-test
+    runs-on: ubuntu-latest
+    if: github.ref == 'refs/heads/main' || github.ref == 'refs/heads/master' || github.event_name == 'workflow_dispatch'
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      # Authenticate to Google Cloud using either:
+      # Option A: Workload Identity Federation (Recommended) - requires WIF_PROVIDER & WIF_SERVICE_ACCOUNT
+      # Option B: Service Account Key (JSON) - requires GCP_SA_KEY
+      - name: Authenticate to Google Cloud (Workload Identity)
+        if: "${{ secrets.WIF_PROVIDER != '' && secrets.WIF_SERVICE_ACCOUNT != '' }}"
+        uses: google-github-actions/auth@v2
+        with:
+          workload_identity_provider: ${{ secrets.WIF_PROVIDER }}
+          service_account: ${{ secrets.WIF_SERVICE_ACCOUNT }}
+          project_id: ${{ env.PROJECT_ID }}
+
+      - name: Authenticate to Google Cloud (Service Account Key)
+        if: "${{ secrets.GCP_SA_KEY != '' && (secrets.WIF_PROVIDER == '' || secrets.WIF_SERVICE_ACCOUNT == '') }}"
+        uses: google-github-actions/auth@v2
+        with:
+          credentials_json: ${{ secrets.GCP_SA_KEY }}
+          project_id: ${{ env.PROJECT_ID }}
+
+      - name: Setup Google Cloud SDK
+        uses: google-github-actions/setup-gcloud@v2
+
+      - name: Deploy to Google Cloud Run
+        id: deploy
+        uses: google-github-actions/deploy-cloudrun@v2
+        with:
+          service: ${{ env.SERVICE_NAME }}
+          region: ${{ env.REGION }}
+          source: '.'
+          flags: >-
+            --port=3000
+            --allow-unauthenticated
+            --min-instances=0
+            --max-instances=5
+            --memory=512Mi
+            --cpu=1
+          env_vars: >-
+            NODE_ENV=production,
+            PORT=3000
+          secrets: >-
+            ${{ secrets.GEMINI_API_KEY != '' && 'GEMINI_API_KEY=GEMINI_API_KEY:latest' || '' }}
+
+      - name: Publish Deployment Summary
+        run: |
+          echo "### 🚀 Deployment Successful!" >> $GITHUB_STEP_SUMMARY
+          echo "" >> $GITHUB_STEP_SUMMARY
+          echo "- **Service Name:** \`${{ env.SERVICE_NAME }}\`" >> $GITHUB_STEP_SUMMARY
+          echo "- **Region:** \`${{ env.REGION }}\`" >> $GITHUB_STEP_SUMMARY
+          echo "- **Public URL:** [${{ steps.deploy.outputs.url }}](${{ steps.deploy.outputs.url }})" >> $GITHUB_STEP_SUMMARY
