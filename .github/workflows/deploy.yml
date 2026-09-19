@@ -51,6 +51,14 @@ jobs:
       - name: Build frontend and server bundles
         run: npm run build
 
+      - name: Run automated test suite
+        run: |
+          node dist/server.cjs &
+          SERVER_PID=$!
+          sleep 2
+          npm test
+          kill $SERVER_PID
+
   # -------------------------------------------------------------
   # Job 2: Deploy to Google Cloud Run
   # -------------------------------------------------------------

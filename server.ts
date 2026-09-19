@@ -77,8 +77,19 @@ async function startServer() {
           if (replyText) {
             return res.json({ reply: replyText, source: "gemini" });
           }
-        } catch (apiErr) {
-          console.warn("Gemini API call failed, falling back to local voice logic:", apiErr);
+        } catch (apiErr: any) {
+          const isQuota =
+            apiErr?.status === 429 ||
+            apiErr?.code === 429 ||
+            apiErr?.message?.includes("429") ||
+            apiErr?.message?.includes("RESOURCE_EXHAUSTED") ||
+            apiErr?.message?.includes("prepayment credits");
+
+          if (isQuota) {
+            console.log("[ElderVoice API] Gemini credits/quota depleted. Seamlessly using local voice assistant logic.");
+          } else {
+            console.log(`[ElderVoice API] Gemini query unavailable (${apiErr?.message || "offline"}). Using local voice assistant logic.`);
+          }
         }
       }
 

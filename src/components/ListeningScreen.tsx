@@ -1,6 +1,7 @@
 import React, { useState, useEffect, useRef } from 'react';
 import { Mic, Volume2, VolumeX, ArrowLeft, RefreshCw, Sparkles, Send } from './Icons';
 import { VoiceExchange } from '../types';
+import { requestVoiceReply } from '../services/voiceService';
 
 interface ListeningScreenProps {
   initialTranscript?: string;
@@ -54,7 +55,6 @@ export const ListeningScreen: React.FC<ListeningScreenProps> = ({
     setPhase('thinking');
 
     try {
-      const { requestVoiceReply } = await import('../services/voiceService');
       const newExchange = await requestVoiceReply(text);
       setExchange(newExchange);
       setPhase('responded');

@@ -3,15 +3,14 @@
  * SPDX-License-Identifier: Apache-2.0
  */
 
-import React, { useState, useEffect, useCallback, Suspense, lazy } from 'react';
+import React, { useState, useEffect, useCallback } from 'react';
 import { ScreenView, AccessibilitySettings } from './types';
 import { Header } from './components/Header';
 import { HomeDashboard } from './components/HomeDashboard';
 import { SimulationToast } from './components/SimulationToast';
 import { AccessibilityPanel } from './components/AccessibilityPanel';
-
-const ListeningScreen = lazy(() => import('./components/ListeningScreen'));
-const SosScreen = lazy(() => import('./components/SosScreen'));
+import { ListeningScreen } from './components/ListeningScreen';
+import { SosScreen } from './components/SosScreen';
 
 export default function App() {
   const [currentScreen, setCurrentScreen] = useState<ScreenView>('home');
@@ -67,6 +66,10 @@ export default function App() {
     return () => window.removeEventListener('keydown', handleKeyDown);
   }, [currentScreen, isA11yOpen]);
 
+  const handleSosCallPlaced = useCallback(() => {
+    showToast("Emergency alert simulated: Dispatch & Sarah have been notified.");
+  }, [showToast]);
+
   return (
     <div
       className={`min-h-screen bg-[#FBF7EF] text-[#2B2A28] flex flex-col font-sans select-none antialiased ${
@@ -93,29 +96,19 @@ export default function App() {
           />
         )}
 
-        <Suspense
-          fallback={
-            <div className="flex-1 flex items-center justify-center">
-              <div className="w-10 h-10 border-4 border-[#2E5D57] border-t-transparent rounded-full animate-spin" />
-            </div>
-          }
-        >
-          {currentScreen === 'listening' && (
-            <ListeningScreen
-              initialTranscript={activeVoicePrompt}
-              onClose={handleReturnHome}
-            />
-          )}
+        {currentScreen === 'listening' && (
+          <ListeningScreen
+            initialTranscript={activeVoicePrompt}
+            onClose={handleReturnHome}
+          />
+        )}
 
-          {currentScreen === 'sos' && (
-            <SosScreen
-              onCancel={handleReturnHome}
-              onCallPlaced={() => {
-                showToast("Emergency alert simulated: Dispatch & Sarah have been notified.");
-              }}
-            />
-          )}
-        </Suspense>
+        {currentScreen === 'sos' && (
+          <SosScreen
+            onCancel={handleReturnHome}
+            onCallPlaced={handleSosCallPlaced}
+          />
+        )}
       </div>
 
       {/* Accessibility & View Preferences Panel */}
